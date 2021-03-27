@@ -3,6 +3,7 @@ pub mod device;
 use std::convert::TryFrom;
 
 use bytes::{Bytes, BytesMut};
+use tokio::sync::oneshot;
 
 use super::{
     frame::{OutgoingPacket, ProtocolError},
@@ -19,8 +20,12 @@ pub trait DeconzCommandOutgoing {
 
     /// Concatenates the packet payload onto a common header
     fn into_frame(&self, sequence_number: u8) -> DeconzFrame<OutgoingPacket> {
-        DeconzFrame::build_outgoing(Self::COMMAND_ID, sequence_number, self.payload_data())
+        DeconzFrame::new(Self::COMMAND_ID, sequence_number, self.payload_data())
     }
+}
+
+pub trait DeconzCommandOutgoingRequest {
+    type Response: DeconzCommandIncoming;
 }
 
 pub trait DeconzCommandIncoming {

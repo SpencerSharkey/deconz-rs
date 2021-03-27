@@ -90,17 +90,28 @@ impl DerefMut for DeconzFrame<Bytes> {
     }
 }
 
+impl DeconzFrame<BytesMut> {
+    fn new(command_id: CommandType, payload: BytesMut) -> Self {
+        Self {
+            command_id,
+            sequence_number: 0,
+            status: None,
+            inner: payload,
+        }
+    }
+
+    fn set_sequence_number(&mut self, seq: u8) {
+        self.sequence_number = seq;
+    }
+}
+
 /// An outgoing deCONZ packet.
 #[derive(Debug, Clone)]
 pub struct OutgoingPacket(Bytes);
 
 impl DeconzFrame<OutgoingPacket> {
     /// From an outgoing payload
-    pub fn build_outgoing(
-        command_id: CommandType,
-        sequence_number: u8,
-        command_payload: BytesMut,
-    ) -> Self {
+    pub fn new(command_id: CommandType, sequence_number: u8, command_payload: BytesMut) -> Self {
         Self {
             command_id,
             sequence_number,

@@ -1,5 +1,5 @@
 [package]
-name = "deconz-tap"
+name = "deconz"
 version = "0.1.0"
 authors = ["Spencer Sharkey <spencer@sf-n.com>"]
 edition = "2018"

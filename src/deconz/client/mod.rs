@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::JoinHandle};
 
-use self::{handle::DeconzClientHandle, task::DeconzTask};
+use self::{
+    handle::DeconzClientHandle,
+    task::{DeconzTask, TaskError},
+};
 
 mod handle;
 mod task;
@@ -27,13 +30,13 @@ impl DeconzClient {
     }
 
     /// Starts a deCONZ task and returns a handle to it.
-    pub fn start(self) -> DeconzClientHandle {
+    pub fn start(self) -> (JoinHandle<Result<(), TaskError>>, DeconzClientHandle) {
         let (task_tx, task_rx) = mpsc::unbounded_channel();
         let task = DeconzTask::new(self.config.clone(), task_rx);
 
-        // todo: task lifecycle management
-        tokio::spawn(async move { task.run() });
+        // deconz task runner
+        let task_joinhandle = tokio::spawn(task.run());
 
-        DeconzClientHandle::new(task_tx)
+        (task_joinhandle, DeconzClientHandle::new(task_tx))
     }
 }

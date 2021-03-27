@@ -30,7 +30,9 @@ async fn main() -> Result<(), anyhow::Error> {
         device_path: opt.device,
     };
 
-    let mut deconz = DeconzClient::new(deconz_config).start();
+    let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
+
+    watchdog.await??;
 
     Ok(())
     // deconz

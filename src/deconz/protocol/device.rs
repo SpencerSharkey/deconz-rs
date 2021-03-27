@@ -1,6 +1,9 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use super::{CommandType, DeconzCommandIncoming, DeconzCommandOutgoing, DeconzFrame};
+use super::{
+    CommandType, DeconzCommandIncoming, DeconzCommandOutgoing, DeconzCommandOutgoingRequest,
+    DeconzFrame,
+};
 
 // Read Firmware Version
 
@@ -32,6 +35,10 @@ impl DeconzCommandOutgoing for ReadFirmwareVersionRequest {
         payload.put_u32_le(0); // Reserved
         payload
     }
+}
+
+impl DeconzCommandOutgoingRequest for ReadFirmwareVersionRequest {
+    type Response = ReadFirmwareVersionResponse;
 }
 
 #[derive(Debug)]
