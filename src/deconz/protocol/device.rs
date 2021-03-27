@@ -25,10 +25,13 @@ impl From<u8> for FirmwareVersionPlatform {
     }
 }
 
+#[derive(Debug)]
 pub struct ReadFirmwareVersionRequest;
 
 impl DeconzCommandOutgoing for ReadFirmwareVersionRequest {
-    const COMMAND_ID: CommandType = CommandType::Version;
+    fn get_command_id(&self) -> CommandType {
+        CommandType::Version
+    }
 
     fn payload_data(&self) -> BytesMut {
         let mut payload = BytesMut::new();
@@ -37,8 +40,21 @@ impl DeconzCommandOutgoing for ReadFirmwareVersionRequest {
     }
 }
 
-impl DeconzCommandOutgoingRequest for ReadFirmwareVersionRequest {
+pub struct ReadCommandVersion;
+
+impl ReadCommandVersion {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl DeconzCommandOutgoingRequest for ReadCommandVersion {
+    type Request = ReadFirmwareVersionRequest;
     type Response = ReadFirmwareVersionResponse;
+
+    fn into_outgoing(self) -> Self::Request {
+        Self::Request {}
+    }
 }
 
 #[derive(Debug)]

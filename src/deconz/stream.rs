@@ -7,7 +7,7 @@ use tokio_util::codec::Framed;
 
 use super::{
     frame::{DeconzCrc, DeconzFrame, OutgoingPacket, ProtocolError},
-    protocol::{DeconzCommandOutgoing, IncomingCommand},
+    protocol::DeconzCommandOutgoing,
 };
 
 #[derive(Error, Debug)]
@@ -54,14 +54,6 @@ impl<S: AsyncRead + AsyncWrite + Unpin> DeconzStream<S> {
         match a {
             Some(Ok(bytes)) => Some(read_frame(bytes)),
             Some(Err(e)) => Some(Err(DeconzStreamError::SlipCodecError(e))),
-            None => None,
-        }
-    }
-
-    pub async fn next_command(&mut self) -> Option<Result<IncomingCommand, DeconzStreamError>> {
-        match self.next_frame().await {
-            Some(Ok(frame)) => Some(Ok(IncomingCommand::decode_frame(frame))),
-            Some(Err(e)) => Some(Err(e)),
             None => None,
         }
     }

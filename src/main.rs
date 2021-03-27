@@ -3,7 +3,10 @@ pub mod deconz;
 use std::path::PathBuf;
 
 use deconz::{
-    protocol::{device::ReadFirmwareVersionRequest, DeconzCommandOutgoing, IncomingCommand},
+    protocol::{
+        device::{ReadCommandVersion, ReadFirmwareVersionRequest},
+        DeconzCommandOutgoing,
+    },
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
@@ -31,6 +34,8 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
+
+    dbg!(deconz.send_command(ReadCommandVersion::new()).await);
 
     watchdog.await??;
 

@@ -99,8 +99,10 @@ impl DeconzFrame<BytesMut> {
             inner: payload,
         }
     }
+}
 
-    fn set_sequence_number(&mut self, seq: u8) {
+impl<T> DeconzFrame<T> {
+    pub(crate) fn set_sequence_number(&mut self, seq: u8) {
         self.sequence_number = seq;
     }
 }
