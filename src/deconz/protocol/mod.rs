@@ -19,7 +19,7 @@ pub trait DeconzCommandRequest: Debug + Send + 'static {
     fn command_id(&self) -> CommandId;
 
     /// Returns the payload to proceed the header
-    fn payload_data(&self) -> BytesMut;
+    fn payload_data(&self) -> Option<BytesMut>;
 
     /// Concatenates the packet payload onto a common header
     fn into_frame(&self, sequence_number: u8) -> DeconzFrame<OutgoingPacket> {

@@ -73,6 +73,7 @@ impl DeconzQueue {
             self.aps_data_request_status = ApsDataRequestStatus::SlotsFull;
         }
 
+        info!("device state updated to {:?}", device_state);
         self.last_device_state = Some(device_state);
     }
 
@@ -197,7 +198,11 @@ impl DeconzQueue {
         read_received_data_response: ReadReceivedDataResponse,
     ) {
         // dunno what to do here yet.
-        todo!()
+        info!(
+            "got aps data indication response: {:?}",
+            read_received_data_response
+        );
+        // todo!()
     }
 
     fn handle_aps_data_confirm_response(&mut self, read_received_confirm_response: ()) {
@@ -228,6 +233,7 @@ impl DeconzQueue {
             return;
         }
 
+        info!("device-state indicates there is an available aps confirm. sending request. (TODO)");
         // TODO: Send.
     }
 
@@ -241,6 +247,7 @@ impl DeconzQueue {
             return;
         }
 
+        info!("device-state indicates there is an available aps data. sending request.");
         self.send_command(
             ReadReceivedData::new().into_boxed_request(),
             // We will handle this internally, as it's enqueued by our own FSM.

@@ -91,38 +91,42 @@ impl DerefMut for DeconzFrame<Bytes> {
     }
 }
 
-impl DeconzFrame<BytesMut> {
-    fn new(command_id: CommandId, payload: BytesMut) -> Self {
-        Self {
-            command_id,
-            sequence_number: 0,
-            status: None,
-            inner: payload,
-        }
-    }
-}
+// impl DeconzFrame<BytesMut> {
+//     fn new(command_id: CommandId, payload: BytesMut) -> Self {
+//         Self {
+//             command_id,
+//             sequence_number: 0,
+//             status: None,
+//             inner: payload,
+//         }
+//     }
+// }
 
 /// An outgoing deCONZ packet.
 #[derive(Debug, Clone)]
-pub struct OutgoingPacket(Bytes);
+pub struct OutgoingPacket(Option<Bytes>);
 
 impl DeconzFrame<OutgoingPacket> {
     /// From an outgoing payload
-    pub fn new(command_id: CommandId, sequence_number: u8, command_payload: BytesMut) -> Self {
+    pub fn new(
+        command_id: CommandId,
+        sequence_number: u8,
+        command_payload: Option<BytesMut>,
+    ) -> Self {
         Self {
             command_id,
             sequence_number,
             status: None,
-            inner: OutgoingPacket(command_payload.into()),
+            inner: OutgoingPacket(command_payload.map(|b| b.into())),
         }
     }
 
     fn header_bytes(&self) -> BytesMut {
         // the payload size field demands the header length + command payload length
         let mut frame_len = 5;
-        if !self.inner.0.is_empty() {
+        if let Some(bytes) = &self.inner.0 {
             frame_len += 2;
-            frame_len += self.inner.0.len();
+            frame_len += bytes.len();
         }
 
         let mut buf = BytesMut::with_capacity(frame_len + 2); // + 2 bytes for the CRC value
@@ -135,8 +139,7 @@ impl DeconzFrame<OutgoingPacket> {
 
     fn packet_bytes(&self) -> BytesMut {
         let mut buf = self.header_bytes();
-        let bytes = &self.inner.0;
-        if !bytes.is_empty() {
+        if let Some(bytes) = &self.inner.0 {
             // todo: protect against overflow?
             buf.put_u16_le(bytes.len() as _);
             buf.put_slice(&bytes);

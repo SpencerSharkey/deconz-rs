@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use pretty_hex::PrettyHex;
 
 use super::{
     CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse, DeconzFrame,
@@ -38,10 +37,10 @@ impl DeconzCommandRequest for ReadFirmwareVersionRequest {
         CommandId::Version
     }
 
-    fn payload_data(&self) -> BytesMut {
+    fn payload_data(&self) -> Option<BytesMut> {
         let mut payload = BytesMut::new();
         payload.put_u16_le(0); // Reserved
-        payload
+        Some(payload)
     }
 }
 
@@ -113,12 +112,12 @@ impl DeconzCommandRequest for ReadDeviceStateRequest {
         CommandId::DeviceState
     }
 
-    fn payload_data(&self) -> BytesMut {
+    fn payload_data(&self) -> Option<BytesMut> {
         let mut payload = BytesMut::new();
         payload.put_u8(0); // Reserved
         payload.put_u8(0); // Reserved
         payload.put_u8(0); // Reserved
-        payload
+        Some(payload)
     }
 }
 

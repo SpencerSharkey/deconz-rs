@@ -309,10 +309,10 @@ impl<T: Paramater> DeconzCommandRequest for ReadParameterRequest<T> {
         CommandId::ReadParameter
     }
 
-    fn payload_data(&self) -> bytes::BytesMut {
+    fn payload_data(&self) -> Option<BytesMut> {
         let mut payload = BytesMut::new();
         payload.put_u8(T::PARAMATER_ID);
-        payload
+        Some(payload)
     }
 }
 
