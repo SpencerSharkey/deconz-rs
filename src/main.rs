@@ -5,7 +5,10 @@ use std::path::PathBuf;
 use deconz::{
     protocol::{
         device::{ReadCommandVersion, ReadFirmwareVersionRequest},
-        DeconzCommandOutgoing,
+        network_parameters::{
+            ReadAPSDesignatedCoordinator, ReadMacAddress, ReadNetworkAddress, ReadNetworkKey,
+        },
+        DeconzCommandRequest,
     },
     DeconzClient, DeconzClientConfig,
 };
@@ -35,7 +38,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
 
-    dbg!(deconz.send_command(ReadCommandVersion::new()).await);
+    // dbg!(deconz.send_command(ReadCommandVersion::new()).await);
+    dbg!(deconz.send_command(ReadNetworkKey::new()).await);
+    // dbg!(deconz.send_command(ReadNetworkAddress::new()).await);
+    dbg!(
+        deconz
+            .send_command(ReadAPSDesignatedCoordinator::new())
+            .await
+    );
+    // dbg!(deconz.send_command(ReadMacAddress::new()).await);
 
     watchdog.await??;
 

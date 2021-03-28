@@ -1,10 +1,10 @@
 pub mod device;
+pub mod network_parameters;
 
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
 use bytes::{Bytes, BytesMut};
-use tokio::sync::oneshot;
 
 use super::{
     frame::{OutgoingPacket, ProtocolError},
@@ -12,66 +12,29 @@ use super::{
 };
 
 /// To be implemented on all outgoing command structs
-pub trait DeconzCommandOutgoing: Debug + Send + 'static {
-    fn get_command_id(&self) -> CommandType;
+pub trait DeconzCommandRequest: Debug + Send + 'static {
+    fn command_id(&self) -> CommandId;
 
     /// Returns the payload to proceed the header
     fn payload_data(&self) -> BytesMut;
 
     /// Concatenates the packet payload onto a common header
     fn into_frame(&self, sequence_number: u8) -> DeconzFrame<OutgoingPacket> {
-        DeconzFrame::new(self.get_command_id(), sequence_number, self.payload_data())
+        DeconzFrame::new(self.command_id(), sequence_number, self.payload_data())
     }
 }
 
-pub trait DeconzCommandOutgoingRequest {
-    type Request: DeconzCommandOutgoing;
-    type Response: DeconzCommandIncoming;
+pub trait DeconzCommand {
+    type Request: DeconzCommandRequest;
+    type Response: DeconzCommandResponse;
 
-    fn into_outgoing(self) -> Self::Request;
+    fn into_request(self) -> Self::Request;
 }
 
-pub trait DeconzCommandIncoming: Send + 'static {
+pub trait DeconzCommandResponse: Send + 'static {
     /// Parses an incoming payload frame into the right type
     fn from_frame(frame: DeconzFrame<Bytes>) -> Self;
 }
-
-#[derive(Debug)]
-enum IncomingCommandPayload {
-    Version(device::ReadFirmwareVersionResponse),
-    Empty,
-}
-
-// impl IncomingCommandPayload {
-//     fn from_frame(frame: DeconzFrame<Bytes>) -> Self {
-//         match frame.command_id() {
-//             CommandType::Version => {
-//                 Self::Version(device::ReadFirmwareVersionResponse::from_frame(frame))
-//             }
-//             _ => Self::Empty,
-//         }
-//     }
-// }
-
-// #[derive(Debug)]
-// pub struct IncomingCommand {
-//     command_id: CommandType,
-//     sequence_number: u8,
-//     status: StatusCode,
-//     frame: DeconzFrame
-//     // payload: IncomingCommandPayload,
-// }
-
-// impl IncomingCommand {
-//     pub fn decode_frame(frame: DeconzFrame<Bytes>) -> Self {
-//         Self {
-//             command_id: frame.command_id(),
-//             sequence_number: frame.sequence_number(),
-//             status: frame.status(),
-//             payload: IncomingCommandPayload::from_frame(frame),
-//         }
-//     }
-// }
 
 #[derive(Debug)]
 struct UnsupportedValueError<T>(T);
@@ -132,7 +95,7 @@ impl TryFrom<u8> for NetworkState {
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
-pub enum CommandType {
+pub enum CommandId {
     DeviceState = 0x07,
     ChangeNetworkState = 0x08,
     ReadParameter = 0x0A,
@@ -147,7 +110,7 @@ pub enum CommandType {
     UpdateBootloader = 0x21,
 }
 
-impl TryFrom<u8> for CommandType {
+impl TryFrom<u8> for CommandId {
     type Error = ProtocolError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {

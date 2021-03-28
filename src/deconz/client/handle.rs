@@ -2,8 +2,7 @@ use thiserror::Error;
 use tokio::sync::{mpsc, oneshot};
 
 use super::task::TaskMessage;
-use crate::deconz::protocol;
-use crate::deconz::protocol::DeconzCommandIncoming;
+use crate::deconz::protocol::{DeconzCommand, DeconzCommandResponse};
 
 #[derive(Error, Debug)]
 pub enum HandleError {
@@ -23,24 +22,24 @@ impl DeconzClientHandle {
         Self { task_tx }
     }
 
-    pub async fn send_command<T: protocol::DeconzCommandOutgoingRequest>(
-        &mut self,
-        outgoing_command: T,
-    ) -> Result<T::Response, HandleError> {
+    pub async fn send_command<T>(&mut self, outgoing_command: T) -> Result<T::Response, HandleError>
+    where
+        T: DeconzCommand,
+    {
         let (tx, rx) = oneshot::channel();
-
         let response_parser = move |frame| {
             let response = T::Response::from_frame(frame);
             tx.send(response).ok();
         };
+        let task_message = TaskMessage::CommandRequest {
+            command_outgoing: Box::new(outgoing_command.into_request()),
+            response_parser: Box::new(response_parser),
+        };
 
         self.task_tx
-            .send(TaskMessage::CommandRequest {
-                command_outgoing: Box::new(outgoing_command.into_outgoing()),
-                response_parser: Box::new(response_parser),
-            })
-            .map_err(|e| HandleError::TaskFailure)?;
+            .send(task_message)
+            .map_err(|_| HandleError::TaskFailure)?;
 
-        rx.await.map_err(|e| HandleError::TaskFailure)
+        rx.await.map_err(|_| HandleError::TaskFailure)
     }
 }

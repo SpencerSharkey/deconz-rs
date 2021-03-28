@@ -1,9 +1,6 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use super::{
-    CommandType, DeconzCommandIncoming, DeconzCommandOutgoing, DeconzCommandOutgoingRequest,
-    DeconzFrame,
-};
+use super::{CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse, DeconzFrame};
 
 // Read Firmware Version
 
@@ -28,14 +25,14 @@ impl From<u8> for FirmwareVersionPlatform {
 #[derive(Debug)]
 pub struct ReadFirmwareVersionRequest;
 
-impl DeconzCommandOutgoing for ReadFirmwareVersionRequest {
-    fn get_command_id(&self) -> CommandType {
-        CommandType::Version
+impl DeconzCommandRequest for ReadFirmwareVersionRequest {
+    fn command_id(&self) -> CommandId {
+        CommandId::Version
     }
 
     fn payload_data(&self) -> BytesMut {
         let mut payload = BytesMut::new();
-        payload.put_u32_le(0); // Reserved
+        payload.put_u16_le(0); // Reserved
         payload
     }
 }
@@ -48,11 +45,11 @@ impl ReadCommandVersion {
     }
 }
 
-impl DeconzCommandOutgoingRequest for ReadCommandVersion {
+impl DeconzCommand for ReadCommandVersion {
     type Request = ReadFirmwareVersionRequest;
     type Response = ReadFirmwareVersionResponse;
 
-    fn into_outgoing(self) -> Self::Request {
+    fn into_request(self) -> Self::Request {
         Self::Request {}
     }
 }
@@ -64,7 +61,7 @@ pub struct ReadFirmwareVersionResponse {
     platform: FirmwareVersionPlatform,
 }
 
-impl DeconzCommandIncoming for ReadFirmwareVersionResponse {
+impl DeconzCommandResponse for ReadFirmwareVersionResponse {
     fn from_frame(mut frame: DeconzFrame<Bytes>) -> Self {
         let _reserved = frame.get_u8();
         Self {

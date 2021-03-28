@@ -4,9 +4,10 @@ use std::{
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use pretty_hex::PrettyHex;
 use thiserror::Error;
 
-use super::protocol::{CommandType, StatusCode};
+use super::protocol::{CommandId, StatusCode};
 
 #[derive(Error, Debug)]
 pub enum ProtocolError {
@@ -29,7 +30,7 @@ pub enum ProtocolError {
 /// Likewise, a DeconzFrame<OutgoingPacket> is a container ready to send to the hardware device.
 #[derive(Debug, Clone)]
 pub struct DeconzFrame<T> {
-    command_id: CommandType,
+    command_id: CommandId,
     sequence_number: u8,
     status: Option<StatusCode>,
     inner: T,
@@ -60,7 +61,7 @@ impl DeconzFrame<Bytes> {
     }
 
     /// Returns this frame's command type ID
-    pub fn command_id(&self) -> CommandType {
+    pub fn command_id(&self) -> CommandId {
         self.command_id
     }
 
@@ -91,7 +92,7 @@ impl DerefMut for DeconzFrame<Bytes> {
 }
 
 impl DeconzFrame<BytesMut> {
-    fn new(command_id: CommandType, payload: BytesMut) -> Self {
+    fn new(command_id: CommandId, payload: BytesMut) -> Self {
         Self {
             command_id,
             sequence_number: 0,
@@ -101,19 +102,13 @@ impl DeconzFrame<BytesMut> {
     }
 }
 
-impl<T> DeconzFrame<T> {
-    pub(crate) fn set_sequence_number(&mut self, seq: u8) {
-        self.sequence_number = seq;
-    }
-}
-
 /// An outgoing deCONZ packet.
 #[derive(Debug, Clone)]
 pub struct OutgoingPacket(Bytes);
 
 impl DeconzFrame<OutgoingPacket> {
     /// From an outgoing payload
-    pub fn new(command_id: CommandType, sequence_number: u8, command_payload: BytesMut) -> Self {
+    pub fn new(command_id: CommandId, sequence_number: u8, command_payload: BytesMut) -> Self {
         Self {
             command_id,
             sequence_number,
@@ -124,7 +119,12 @@ impl DeconzFrame<OutgoingPacket> {
 
     fn header_bytes(&self) -> BytesMut {
         // the payload size field demands the header length + command payload length
-        let frame_len = 5 + self.inner.0.len();
+        let mut frame_len = 5;
+        if !self.inner.0.is_empty() {
+            frame_len += 2;
+            frame_len += self.inner.0.len();
+        }
+
         let mut buf = BytesMut::with_capacity(frame_len + 2); // + 2 bytes for the CRC value
         buf.put_u8(self.command_id as u8);
         buf.put_u8(self.sequence_number);
@@ -135,7 +135,13 @@ impl DeconzFrame<OutgoingPacket> {
 
     fn packet_bytes(&self) -> BytesMut {
         let mut buf = self.header_bytes();
-        buf.put_slice(&self.inner.0);
+        let bytes = &self.inner.0;
+        if !bytes.is_empty() {
+            // todo: protect against overflow?
+            buf.put_u16_le(bytes.len() as _);
+            buf.put_slice(&bytes);
+        }
+
         buf
     }
 
@@ -144,6 +150,7 @@ impl DeconzFrame<OutgoingPacket> {
     /// The bytes returned here are intended for the device sink.
     pub fn encode(self) -> Bytes {
         let mut packet_bytes = self.packet_bytes();
+        dbg!(packet_bytes.hex_dump());
         let crc = DeconzCrc::generate(&packet_bytes);
         packet_bytes.put_slice(&crc.as_slice());
         Bytes::from(packet_bytes)
@@ -198,7 +205,7 @@ impl DeconzCrc {
 
 #[cfg(test)]
 pub mod test {
-    use crate::deconz::protocol::{device::ReadFirmwareVersionRequest, DeconzCommandOutgoing};
+    use crate::deconz::protocol::{device::ReadFirmwareVersionRequest, DeconzCommandRequest};
 
     use super::*;
 

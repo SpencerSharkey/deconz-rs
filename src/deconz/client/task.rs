@@ -8,14 +8,14 @@ use tokio_serial::{Serial, SerialPortSettings};
 use tracing::info;
 
 use crate::deconz::{
-    frame::OutgoingPacket, protocol::DeconzCommandOutgoing, DeconzFrame, DeconzStream,
+    frame::OutgoingPacket, protocol::DeconzCommandRequest, DeconzFrame, DeconzStream,
 };
 
 use super::DeconzClientConfig;
 
 pub enum TaskMessage {
     CommandRequest {
-        command_outgoing: Box<dyn DeconzCommandOutgoing>,
+        command_outgoing: Box<dyn DeconzCommandRequest>,
         response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) + Send>,
     },
 }
@@ -124,6 +124,7 @@ impl DeconzTask {
                 response_parser,
             } => {
                 let sequence_number = self.next_sequence_number();
+                let command_id = command_outgoing.command_id();
 
                 // todo: handle sequence id exhaustion (and queueing logic...)
                 self.in_flight_commands
