@@ -3,7 +3,7 @@ pub mod deconz;
 use std::path::PathBuf;
 
 use deconz::{
-    protocol::{device::*, network_parameters::*},
+    protocol::{aps::ReadReceivedData, device::*, network_parameters::*},
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
@@ -45,6 +45,8 @@ async fn main() -> Result<(), anyhow::Error> {
     dbg!(deconz.send_command(ReadNetworkPanId::new()).await);
     dbg!(deconz.send_command(ReadCurrentChannel::new()).await);
     dbg!(deconz.send_command(ReadNetworkFrameCounter::new()).await);
+
+    dbg!(deconz.send_command(ReadReceivedData::new()).await);
 
     watchdog.await??;
 
