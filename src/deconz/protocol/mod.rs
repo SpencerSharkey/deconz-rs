@@ -93,7 +93,7 @@ impl TryFrom<u8> for NetworkState {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[repr(u8)]
 pub enum CommandId {
     DeviceState = 0x07,

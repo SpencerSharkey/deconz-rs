@@ -8,7 +8,9 @@ use tokio_serial::{Serial, SerialPortSettings};
 use tracing::info;
 
 use crate::deconz::{
-    frame::OutgoingPacket, protocol::DeconzCommandRequest, DeconzFrame, DeconzStream,
+    frame::OutgoingPacket,
+    protocol::{CommandId, DeconzCommandRequest},
+    DeconzFrame, DeconzStream,
 };
 
 use super::DeconzClientConfig;
@@ -57,7 +59,7 @@ pub struct DeconzTask {
     config: DeconzClientConfig,
     task_rx: mpsc::UnboundedReceiver<TaskMessage>,
     next_sequence_number: u8,
-    in_flight_commands: HashMap<u8, InFlightCommand>,
+    in_flight_commands: HashMap<(CommandId, u8), InFlightCommand>,
 }
 
 impl DeconzTask {
@@ -101,10 +103,11 @@ impl DeconzTask {
     async fn handle_deconz_frame(&mut self, incoming_frame: DeconzFrame<Bytes>) {
         info!("incoming deconz frame {:?}", incoming_frame);
 
-        if let Some(in_flight_command) = self
-            .in_flight_commands
-            .remove(&incoming_frame.sequence_number())
-        {
+        let key = &(
+            incoming_frame.command_id(),
+            incoming_frame.sequence_number(),
+        );
+        if let Some(in_flight_command) = self.in_flight_commands.remove(key) {
             (in_flight_command.response_parser)(incoming_frame);
         } else {
             info!("frame has no in-flight command handler registered, dropping!");
@@ -127,8 +130,10 @@ impl DeconzTask {
                 let command_id = command_outgoing.command_id();
 
                 // todo: handle sequence id exhaustion (and queueing logic...)
-                self.in_flight_commands
-                    .insert(sequence_number, InFlightCommand { response_parser });
+                self.in_flight_commands.insert(
+                    (command_id, sequence_number),
+                    InFlightCommand { response_parser },
+                );
 
                 let frame = command_outgoing.into_frame(sequence_number);
                 deconz_stream.write_frame(frame).await.unwrap(); // todo: Error handling!
