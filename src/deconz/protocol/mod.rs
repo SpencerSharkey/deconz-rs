@@ -27,11 +27,15 @@ pub trait DeconzCommandRequest: Debug + Send + 'static {
     }
 }
 
-pub trait DeconzCommand {
+pub trait DeconzCommand: Sized {
     type Request: DeconzCommandRequest;
     type Response: DeconzCommandResponse;
 
     fn into_request(self) -> Self::Request;
+
+    fn into_boxed_request(self) -> Box<dyn DeconzCommandRequest> {
+        Box::new(self.into_request())
+    }
 }
 
 pub trait DeconzCommandResponse: Sized + Send + 'static {
@@ -80,6 +84,13 @@ pub enum NetworkState {
     NetJoining = 0x01,
     NetConnected = 0x02,
     NetLeaving = 0x03,
+}
+
+impl NetworkState {
+    /// Returns `true` if the network_state is [`NetConnected`].
+    pub fn is_net_connected(&self) -> bool {
+        matches!(self, Self::NetConnected)
+    }
 }
 
 impl TryFrom<u8> for NetworkState {

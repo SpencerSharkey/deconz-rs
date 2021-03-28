@@ -8,6 +8,7 @@ use self::{
 };
 
 mod handle;
+mod queue;
 mod task;
 
 /// Common configuration passed to the deCONZ client and used by the underlying task.

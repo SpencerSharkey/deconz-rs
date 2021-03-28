@@ -915,7 +915,7 @@ dependencies = [
 [[package]]
 name = "tokio-serial"
 version = "4.3.3"
-source = "git+git://github.com/mnbbrown/tokio-serial?branch=master#ace64363030f8af6b5c9aaadd930ee9515fe33f1"
+source = "git+git://github.com/mnbbrown/tokio-serial?rev=7c2554df2664be2eb29a99957a221650c1325909#7c2554df2664be2eb29a99957a221650c1325909"
 dependencies = [
  "futures",
  "mio-serial",

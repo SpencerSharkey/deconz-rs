@@ -1,6 +1,4 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use pretty_hex::PrettyHex;
-use tracing::info;
 
 use crate::deconz::DeconzFrame;
 

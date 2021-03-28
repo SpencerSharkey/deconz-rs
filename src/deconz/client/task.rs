@@ -13,7 +13,10 @@ use crate::deconz::{
     DeconzFrame, DeconzStream,
 };
 
-use super::DeconzClientConfig;
+use super::{
+    queue::{DeconzQueue, InFlightCommand},
+    DeconzClientConfig,
+};
 
 pub enum TaskMessage {
     CommandRequest {
@@ -58,8 +61,7 @@ pub enum TaskError {
 pub struct DeconzTask {
     config: DeconzClientConfig,
     task_rx: mpsc::UnboundedReceiver<TaskMessage>,
-    next_sequence_number: u8,
-    in_flight_commands: HashMap<(CommandId, u8), InFlightCommand>,
+    queue: DeconzQueue,
 }
 
 impl DeconzTask {
@@ -67,8 +69,7 @@ impl DeconzTask {
         Self {
             config,
             task_rx,
-            next_sequence_number: 0,
-            in_flight_commands: Default::default(),
+            queue: DeconzQueue::new(),
         }
     }
 
@@ -78,18 +79,15 @@ impl DeconzTask {
         let mut deconz_stream = DeconzStream::new(serial_stream);
 
         loop {
-            // info!("task waiting for next message...");
-            // This hack is to work around https://github.com/berkowski/tokio-serial/pull/33/files#r576928864
-            // Essentially, we always try to re-poll, as right now, it does not handle EWOULDBLOCK correctly.
-            let sleep = time::sleep(Duration::from_millis(50));
+            self.queue.try_io(&mut deconz_stream).await;
+
             tokio::select! {
                 Some(Ok(frame)) = deconz_stream.next_frame() => {
                     self.handle_deconz_frame(frame).await;
                 }
                 Some(task_message) = self.task_rx.recv() => {
-                    self.handle_task_message(task_message, &mut deconz_stream).await?;
+                    self.handle_task_message(task_message).await?;
                 }
-                _ = sleep => { }
             }
         }
     }
@@ -106,89 +104,24 @@ impl DeconzTask {
         )?)
     }
 
-    async fn handle_deconz_frame(&mut self, mut incoming_frame: DeconzFrame<Bytes>) {
+    async fn handle_deconz_frame(&mut self, incoming_frame: DeconzFrame<Bytes>) {
         info!("incoming deconz frame {:?}", incoming_frame);
-
-        // Unsolicited message, will handle.
-        if incoming_frame.command_id() == CommandId::DeviceStateChanged {
-            self.handle_device_state_changed(incoming_frame.get_u8().into())
-                .await;
-            return;
-        }
-
-        let key = &(
-            incoming_frame.command_id(),
-            incoming_frame.sequence_number(),
-        );
-        if let Some(in_flight_command) = self.in_flight_commands.remove(key) {
-            match in_flight_command {
-                InFlightCommand::External { response_parser } => {
-                    if let Some(device_state) = (response_parser)(incoming_frame) {
-                        self.handle_device_state_changed(device_state).await;
-                    }
-                }
-                InFlightCommand::Internal {} => {}
-            }
-        } else {
-            info!("frame has no in-flight command handler registered, dropping!");
-        }
+        self.queue.handle_deconz_frame(incoming_frame);
     }
 
-    async fn handle_device_state_changed(&mut self, device_state: DeviceState) {
-        info!("deconz device state changed: {:?}", device_state);
-    }
-
-    async fn handle_task_message(
-        &mut self,
-        task_message: TaskMessage,
-        deconz_stream: &mut DeconzStream<Serial>,
-    ) -> Result<(), TaskError> {
+    async fn handle_task_message(&mut self, task_message: TaskMessage) -> Result<(), TaskError> {
         info!("incoming task message {:?}", task_message);
 
         match task_message {
             TaskMessage::CommandRequest {
                 command_request,
                 response_parser,
-            } => {
-                self.send_command(
-                    command_request,
-                    InFlightCommand::External { response_parser },
-                    deconz_stream,
-                )
-                .await
-            }
+            } => self.queue.enqueue_command(
+                command_request,
+                InFlightCommand::External { response_parser },
+            ),
         }
 
         Ok(())
     }
-
-    async fn send_command(
-        &mut self,
-        command_request: Box<dyn DeconzCommandRequest>,
-        in_flight_command: InFlightCommand,
-        deconz_stream: &mut DeconzStream<Serial>,
-    ) {
-        let sequence_number = self.next_sequence_number();
-        let command_id = command_request.command_id();
-
-        // todo: handle sequence id exhaustion (and queueing logic...)
-        self.in_flight_commands
-            .insert((command_id, sequence_number), in_flight_command);
-
-        let frame = command_request.into_frame(sequence_number);
-        deconz_stream.write_frame(frame).await.unwrap(); // todo: Error handling!
-    }
-
-    fn next_sequence_number(&mut self) -> u8 {
-        let sequence_number = self.next_sequence_number;
-        self.next_sequence_number = self.next_sequence_number.wrapping_add(1);
-        sequence_number
-    }
-}
-
-enum InFlightCommand {
-    External {
-        response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
-    },
-    Internal {},
 }

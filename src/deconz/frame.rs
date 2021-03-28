@@ -66,7 +66,7 @@ impl DeconzFrame<Bytes> {
     }
 
     /// Returns this frame's sequence number
-    pub fn sequence_number(&self) -> u8 {
+    pub fn sequence_id(&self) -> u8 {
         self.sequence_number
     }
 

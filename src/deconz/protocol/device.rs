@@ -132,11 +132,11 @@ impl DeconzCommandResponse for ReadDeviceStateResponse {
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceState {
-    network_state: NetworkState,
-    apsde_data_confirm: bool,
-    apsde_data_indication: bool,
-    configuration_changed: bool,
-    apsde_data_request_free_slots: bool,
+    pub network_state: NetworkState,
+    pub apsde_data_confirm: bool,
+    pub apsde_data_indication: bool,
+    pub configuration_changed: bool,
+    pub apsde_data_request_free_slots: bool,
 }
 
 impl From<u8> for DeviceState {
