@@ -88,7 +88,7 @@ pub enum NetworkState {
 
 impl NetworkState {
     /// Returns `true` if the network_state is [`NetConnected`].
-    pub fn is_net_connected(&self) -> bool {
+    pub fn is_connected(&self) -> bool {
         matches!(self, Self::NetConnected)
     }
 }
