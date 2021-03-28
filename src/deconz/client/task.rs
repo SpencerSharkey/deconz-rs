@@ -17,7 +17,7 @@ use super::DeconzClientConfig;
 
 pub enum TaskMessage {
     CommandRequest {
-        command_outgoing: Box<dyn DeconzCommandRequest>,
+        command_request: Box<dyn DeconzCommandRequest>,
         response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
     },
 }
@@ -34,7 +34,7 @@ impl Debug for TaskMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TaskMessage::CommandRequest {
-                command_outgoing,
+                command_request: command_outgoing,
                 response_parser: _,
             } => f
                 .debug_struct("TaskMessage::CommandRequest")
@@ -121,8 +121,13 @@ impl DeconzTask {
             incoming_frame.sequence_number(),
         );
         if let Some(in_flight_command) = self.in_flight_commands.remove(key) {
-            if let Some(device_state) = (in_flight_command.response_parser)(incoming_frame) {
-                self.handle_device_state_changed(device_state).await;
+            match in_flight_command {
+                InFlightCommand::External { response_parser } => {
+                    if let Some(device_state) = (response_parser)(incoming_frame) {
+                        self.handle_device_state_changed(device_state).await;
+                    }
+                }
+                InFlightCommand::Internal {} => {}
             }
         } else {
             info!("frame has no in-flight command handler registered, dropping!");
@@ -142,24 +147,36 @@ impl DeconzTask {
 
         match task_message {
             TaskMessage::CommandRequest {
-                command_outgoing,
+                command_request,
                 response_parser,
             } => {
-                let sequence_number = self.next_sequence_number();
-                let command_id = command_outgoing.command_id();
-
-                // todo: handle sequence id exhaustion (and queueing logic...)
-                self.in_flight_commands.insert(
-                    (command_id, sequence_number),
-                    InFlightCommand { response_parser },
-                );
-
-                let frame = command_outgoing.into_frame(sequence_number);
-                deconz_stream.write_frame(frame).await.unwrap(); // todo: Error handling!
+                self.send_command(
+                    command_request,
+                    InFlightCommand::External { response_parser },
+                    deconz_stream,
+                )
+                .await
             }
         }
 
         Ok(())
+    }
+
+    async fn send_command(
+        &mut self,
+        command_request: Box<dyn DeconzCommandRequest>,
+        in_flight_command: InFlightCommand,
+        deconz_stream: &mut DeconzStream<Serial>,
+    ) {
+        let sequence_number = self.next_sequence_number();
+        let command_id = command_request.command_id();
+
+        // todo: handle sequence id exhaustion (and queueing logic...)
+        self.in_flight_commands
+            .insert((command_id, sequence_number), in_flight_command);
+
+        let frame = command_request.into_frame(sequence_number);
+        deconz_stream.write_frame(frame).await.unwrap(); // todo: Error handling!
     }
 
     fn next_sequence_number(&mut self) -> u8 {
@@ -169,6 +186,9 @@ impl DeconzTask {
     }
 }
 
-struct InFlightCommand {
-    response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
+enum InFlightCommand {
+    External {
+        response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
+    },
+    Internal {},
 }

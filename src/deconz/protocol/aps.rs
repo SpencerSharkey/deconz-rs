@@ -17,6 +17,15 @@ pub struct ReadReceivedDataRequest;
 #[derive(Debug)]
 pub struct ReadReceivedDataResponse {
     pub device_state: DeviceState,
+    pub destination_address: DestinationAddress,
+    pub destination_endpoint: u8,
+    pub source_address: SourceAddress,
+    pub source_endpoint: u8,
+    pub profile_id: u16,
+    pub cluster_id: u16,
+    pub application_specific_data_unit: Vec<u8>,
+    pub link_quality_indication: u8,
+    pub received_signal_strength_indication: i8,
 }
 
 impl ReadReceivedData {
@@ -41,7 +50,7 @@ impl DeconzCommandRequest for ReadReceivedDataRequest {
 
     fn payload_data(&self) -> BytesMut {
         let mut payload = BytesMut::new();
-        payload.put_u8(0x01);
+        payload.put_u8(0x04);
         payload
     }
 }
@@ -51,7 +60,74 @@ impl DeconzCommandResponse for ReadReceivedDataResponse {
         let _payload_length = frame.get_u16_le();
         let flags = frame.get_u8();
         let device_state = flags.into();
-        info!("frame hex dump: {}", frame.hex_dump());
-        (Self { device_state }, Some(device_state))
+
+        let destination_address_mode = frame.get_u8();
+        let destination_address = match destination_address_mode {
+            0x01 => DestinationAddress::GroupAddress(frame.get_u16_le()),
+            0x02 => DestinationAddress::NetworkAddress(frame.get_u16_le()),
+            0x03 => DestinationAddress::IEEEAddress(frame.get_u64_le()),
+            other => panic!("Unexpected destination address mode: {:?}", other),
+        };
+        let destination_endpoint = frame.get_u8();
+
+        // We are expecting 0x04 here, because of our request flags.
+        let source_address_mode = frame.get_u8();
+        let source_address = match source_address_mode {
+            0x04 => SourceAddress {
+                network_address: frame.get_u16_le(),
+                ieee_address: frame.get_u64_le(),
+            },
+            other => panic!("Unexpected source address mode: {:?}", other),
+        };
+        let source_endpoint = frame.get_u8();
+
+        let profile_id = frame.get_u16_le();
+        let cluster_id = frame.get_u16_le();
+
+        let application_specific_data_unit_length = frame.get_u16_le();
+        let mut application_specific_data_unit =
+            vec![0u8; application_specific_data_unit_length as usize];
+        frame.copy_to_slice(&mut application_specific_data_unit);
+
+        frame.get_u8(); // Reserved
+        frame.get_u8(); // Reserved
+
+        let link_quality_indication = frame.get_u8();
+
+        frame.get_u8(); // Reserved
+        frame.get_u8(); // Reserved
+        frame.get_u8(); // Reserved
+        frame.get_u8(); // Reserved
+
+        let received_signal_strength_indication = frame.get_i8();
+
+        (
+            Self {
+                device_state,
+                destination_address,
+                destination_endpoint,
+                source_address,
+                source_endpoint,
+                profile_id,
+                cluster_id,
+                application_specific_data_unit,
+                link_quality_indication,
+                received_signal_strength_indication,
+            },
+            Some(device_state),
+        )
     }
+}
+
+#[derive(Debug)]
+pub enum DestinationAddress {
+    GroupAddress(u16),
+    NetworkAddress(u16),
+    IEEEAddress(u64),
+}
+
+#[derive(Debug)]
+pub struct SourceAddress {
+    network_address: u16,
+    ieee_address: u64,
 }

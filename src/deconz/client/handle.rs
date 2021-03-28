@@ -33,7 +33,7 @@ impl DeconzClientHandle {
             device_state
         };
         let task_message = TaskMessage::CommandRequest {
-            command_outgoing: Box::new(outgoing_command.into_request()),
+            command_request: Box::new(outgoing_command.into_request()),
             response_parser: Box::new(response_parser),
         };
 
