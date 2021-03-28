@@ -48,6 +48,7 @@ impl DeconzCommandRequest for ReadReceivedDataRequest {
 
 impl DeconzCommandResponse for ReadReceivedDataResponse {
     fn from_frame(mut frame: DeconzFrame<Bytes>) -> (Self, Option<DeviceState>) {
+        let _payload_length = frame.get_u16_le();
         let flags = frame.get_u8();
         let device_state = flags.into();
         info!("frame hex dump: {}", frame.hex_dump());

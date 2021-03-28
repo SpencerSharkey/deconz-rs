@@ -1,12 +1,13 @@
 pub mod deconz;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use deconz::{
     protocol::{aps::ReadReceivedData, device::*, network_parameters::*},
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
+use tokio::{task, time::sleep};
 // use tokio_serial::SerialPortSettings;
 use tracing::info;
 
@@ -32,21 +33,49 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
 
-    dbg!(deconz.send_command(ReadDeviceState::new()).await);
-    dbg!(deconz.send_command(ReadCommandVersion::new()).await);
-    dbg!(deconz.send_command(ReadNetworkKey::new()).await);
-    // dbg!(deconz.send_command(ReadNetworkAddress::new()).await);
-    dbg!(
-        deconz
-            .send_command(ReadAPSDesignatedCoordinator::new())
-            .await
-    );
-    dbg!(deconz.send_command(ReadMacAddress::new()).await);
-    dbg!(deconz.send_command(ReadNetworkPanId::new()).await);
-    dbg!(deconz.send_command(ReadCurrentChannel::new()).await);
-    dbg!(deconz.send_command(ReadNetworkFrameCounter::new()).await);
+    let mut hdl = deconz.clone();
+    task::spawn(async move {
+        loop {
+            let x = hdl.send_command(ReadDeviceState::new()).await;
+            info!("device state is: {:?}", x);
+            sleep(Duration::from_secs(1)).await;
+        }
+    });
 
-    dbg!(deconz.send_command(ReadReceivedData::new()).await);
+    // let mut hdl = deconz.clone();
+    // task::spawn(async move {
+    //     loop {
+    //         info!("beep boop...");
+    //         let mut hdl = hdl.clone();
+    //         task::spawn(async move {
+    //             let fut = hdl.send_command(ReadWatchdogTtl::new());
+    //             fut.await;
+    //         });
+    //         // info!("device state is: {:?}", x);
+    //         sleep(Duration::from_secs(1)).await;
+    //     }
+    // });
+
+    dbg!(deconz.send_command(ReadWatchdogTtl::new()).await);
+    // dbg!(deconz.send_command(ReadCommandVersion::new()).await);
+    // dbg!(deconz.send_command(ReadNetworkKey::new()).await);
+    // // dbg!(deconz.send_command(ReadNetworkAddress::new()).await);
+    // dbg!(
+    //     deconz
+    //         .send_command(ReadAPSDesignatedCoordinator::new())
+    //         .await
+    // );
+    // dbg!(deconz.send_command(ReadMacAddress::new()).await);
+    // dbg!(deconz.send_command(ReadNetworkPanId::new()).await);
+    // dbg!(deconz.send_command(ReadCurrentChannel::new()).await);
+    // dbg!(deconz.send_command(ReadNetworkFrameCounter::new()).await);
+    // dbg!(deconz.send_command(ReadReceivedData::new()).await);
+
+    loop {
+        let data = deconz.send_command(ReadReceivedData::new()).await;
+        dbg!(data);
+        sleep(Duration::from_secs(10)).await;
+    }
 
     watchdog.await??;
 

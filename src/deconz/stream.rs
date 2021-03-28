@@ -31,7 +31,7 @@ fn read_frame(mut bytes: BytesMut) -> Result<DeconzFrame<Bytes>, DeconzStreamErr
     let crc_bytes = bytes.split_off(bytes_len - 2);
     let crc = DeconzCrc::from_values(&crc_bytes)
         .map_err(|e| DeconzStreamError::ProtocolError(e.into()))?;
-    crc.verify_frame(bytes).map_err(|e| e.into())
+    Ok(crc.verify_frame(bytes)?)
 }
 
 /// A wrapper for an AsyncRead + AsyncWrite that allows for reading and writing deCONZ protocol packets.
@@ -66,14 +66,8 @@ impl<S: AsyncRead + AsyncWrite + Unpin> DeconzStream<S> {
         self.slip_stream
             .send(payload.encode())
             .await
-            .map_err(|e| DeconzStreamError::SlipCodecError(e))
-    }
+            .map_err(|e| DeconzStreamError::SlipCodecError(e))?;
 
-    pub async fn write_command<D: DeconzCommandRequest>(
-        &mut self,
-        sequence_number: u8,
-        command: D,
-    ) -> Result<(), DeconzStreamError> {
-        self.write_frame(command.into_frame(sequence_number)).await
+        Ok(())
     }
 }

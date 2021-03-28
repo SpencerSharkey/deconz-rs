@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fmt::Display, io};
+use std::{collections::HashMap, fmt::Display, io, time::Duration};
 use std::{fmt::Debug, process::Command};
 
 use bytes::{Buf, Bytes};
 use thiserror::Error;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, time};
 use tokio_serial::{Serial, SerialPortSettings};
 use tracing::info;
 
@@ -78,14 +78,18 @@ impl DeconzTask {
         let mut deconz_stream = DeconzStream::new(serial_stream);
 
         loop {
+            // info!("task waiting for next message...");
+            // This hack is to work around https://github.com/berkowski/tokio-serial/pull/33/files#r576928864
+            // Essentially, we always try to re-poll, as right now, it does not handle EWOULDBLOCK correctly.
+            let sleep = time::sleep(Duration::from_millis(50));
             tokio::select! {
                 Some(Ok(frame)) = deconz_stream.next_frame() => {
                     self.handle_deconz_frame(frame).await;
-
                 }
-                Some(task_kmessage) = self.task_rx.recv() => {
-                    self.handle_task_message(task_kmessage, &mut deconz_stream).await?;
+                Some(task_message) = self.task_rx.recv() => {
+                    self.handle_task_message(task_message, &mut deconz_stream).await?;
                 }
+                _ = sleep => { }
             }
         }
     }
@@ -95,6 +99,8 @@ impl DeconzTask {
             self.config.device_path.clone(),
             &SerialPortSettings {
                 baud_rate: 38400,
+                flow_control: tokio_serial::FlowControl::None,
+                timeout: Duration::from_secs(100),
                 ..Default::default()
             },
         )?)
