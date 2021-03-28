@@ -1,7 +1,7 @@
-use std::fmt::Debug;
 use std::{collections::HashMap, fmt::Display, io};
+use std::{fmt::Debug, process::Command};
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tokio_serial::{Serial, SerialPortSettings};
@@ -9,7 +9,7 @@ use tracing::info;
 
 use crate::deconz::{
     frame::OutgoingPacket,
-    protocol::{CommandId, DeconzCommandRequest},
+    protocol::{device::DeviceState, CommandId, DeconzCommandRequest},
     DeconzFrame, DeconzStream,
 };
 
@@ -18,7 +18,7 @@ use super::DeconzClientConfig;
 pub enum TaskMessage {
     CommandRequest {
         command_outgoing: Box<dyn DeconzCommandRequest>,
-        response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) + Send>,
+        response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
     },
 }
 
@@ -100,18 +100,31 @@ impl DeconzTask {
         )?)
     }
 
-    async fn handle_deconz_frame(&mut self, incoming_frame: DeconzFrame<Bytes>) {
+    async fn handle_deconz_frame(&mut self, mut incoming_frame: DeconzFrame<Bytes>) {
         info!("incoming deconz frame {:?}", incoming_frame);
+
+        // Unsolicited message, will handle.
+        if incoming_frame.command_id() == CommandId::DeviceStateChanged {
+            self.handle_device_state_changed(incoming_frame.get_u8().into())
+                .await;
+            return;
+        }
 
         let key = &(
             incoming_frame.command_id(),
             incoming_frame.sequence_number(),
         );
         if let Some(in_flight_command) = self.in_flight_commands.remove(key) {
-            (in_flight_command.response_parser)(incoming_frame);
+            if let Some(device_state) = (in_flight_command.response_parser)(incoming_frame) {
+                self.handle_device_state_changed(device_state).await;
+            }
         } else {
             info!("frame has no in-flight command handler registered, dropping!");
         }
+    }
+
+    async fn handle_device_state_changed(&mut self, device_state: DeviceState) {
+        info!("deconz device state changed: {:?}", device_state);
     }
 
     async fn handle_task_message(
@@ -151,5 +164,5 @@ impl DeconzTask {
 }
 
 struct InFlightCommand {
-    response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) + Send>,
+    response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
 }

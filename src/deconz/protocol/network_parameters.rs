@@ -5,7 +5,9 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::deconz::DeconzFrame;
 
-use super::{CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse};
+use super::{
+    device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
+};
 
 mod sealed {
     pub trait Sealed {}
@@ -192,6 +194,7 @@ mod paramater {
 
     // LinkKey - skipped because it doesnt look to be useful?
 
+    #[derive(Debug)]
     pub struct CurrentChannel(u8);
     impl Sealed for CurrentChannel {}
     impl Paramater for CurrentChannel {
@@ -202,6 +205,7 @@ mod paramater {
         }
     }
 
+    #[derive(Debug)]
     pub struct ProtocolVersion(u16);
     impl Sealed for ProtocolVersion {}
     impl Paramater for ProtocolVersion {
@@ -211,6 +215,7 @@ mod paramater {
             Self(frame.get_u16_le())
         }
     }
+    #[derive(Debug)]
     pub struct NetworkUpdateId(u8);
     impl Sealed for NetworkUpdateId {}
     impl Paramater for NetworkUpdateId {
@@ -220,6 +225,7 @@ mod paramater {
             Self(frame.get_u8())
         }
     }
+    #[derive(Debug)]
     pub struct WatchdogTtl(Duration);
     impl Sealed for WatchdogTtl {}
     impl Paramater for WatchdogTtl {
@@ -230,6 +236,7 @@ mod paramater {
         }
     }
 
+    #[derive(Debug)]
     pub struct NetworkFrameCounter(u32);
     impl Sealed for NetworkFrameCounter {}
     impl Paramater for NetworkFrameCounter {
@@ -310,14 +317,17 @@ impl<T: Paramater> DeconzCommandRequest for ReadParameterRequest<T> {
 }
 
 impl<T: Paramater> DeconzCommandResponse for ReadParameterResponse<T> {
-    fn from_frame(mut frame: DeconzFrame<bytes::Bytes>) -> Self {
+    fn from_frame(mut frame: DeconzFrame<bytes::Bytes>) -> (Self, Option<DeviceState>) {
         // todo: how do we handle this better? what if it doesn't match? should we crash?
         let _payload_length = frame.get_u16_le();
         let paramater_id = dbg!(frame.get_u8());
         assert_eq!(paramater_id, T::PARAMATER_ID);
-        Self {
-            value: T::from_frame(frame),
-        }
+        (
+            Self {
+                value: T::from_frame(frame),
+            },
+            None,
+        )
     }
 }
 

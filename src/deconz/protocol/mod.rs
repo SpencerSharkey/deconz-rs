@@ -1,3 +1,4 @@
+pub mod aps;
 pub mod device;
 pub mod network_parameters;
 
@@ -5,6 +6,8 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 
 use bytes::{Bytes, BytesMut};
+
+use self::device::DeviceState;
 
 use super::{
     frame::{OutgoingPacket, ProtocolError},
@@ -31,9 +34,9 @@ pub trait DeconzCommand {
     fn into_request(self) -> Self::Request;
 }
 
-pub trait DeconzCommandResponse: Send + 'static {
+pub trait DeconzCommandResponse: Sized + Send + 'static {
     /// Parses an incoming payload frame into the right type
-    fn from_frame(frame: DeconzFrame<Bytes>) -> Self;
+    fn from_frame(frame: DeconzFrame<Bytes>) -> (Self, Option<DeviceState>);
 }
 
 #[derive(Debug)]

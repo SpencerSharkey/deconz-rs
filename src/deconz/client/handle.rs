@@ -28,8 +28,9 @@ impl DeconzClientHandle {
     {
         let (tx, rx) = oneshot::channel();
         let response_parser = move |frame| {
-            let response = T::Response::from_frame(frame);
+            let (response, device_state) = T::Response::from_frame(frame);
             tx.send(response).ok();
+            device_state
         };
         let task_message = TaskMessage::CommandRequest {
             command_outgoing: Box::new(outgoing_command.into_request()),

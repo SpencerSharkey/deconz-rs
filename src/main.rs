@@ -3,17 +3,11 @@ pub mod deconz;
 use std::path::PathBuf;
 
 use deconz::{
-    protocol::{
-        device::{ReadCommandVersion, ReadFirmwareVersionRequest},
-        network_parameters::{
-            ReadAPSDesignatedCoordinator, ReadMacAddress, ReadNetworkAddress, ReadNetworkKey,
-        },
-        DeconzCommandRequest,
-    },
+    protocol::{device::*, network_parameters::*},
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
-use tokio_serial::SerialPortSettings;
+// use tokio_serial::SerialPortSettings;
 use tracing::info;
 
 #[derive(Debug, StructOpt)]
@@ -38,7 +32,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
 
-    // dbg!(deconz.send_command(ReadCommandVersion::new()).await);
+    dbg!(deconz.send_command(ReadDeviceState::new()).await);
+    dbg!(deconz.send_command(ReadCommandVersion::new()).await);
     dbg!(deconz.send_command(ReadNetworkKey::new()).await);
     // dbg!(deconz.send_command(ReadNetworkAddress::new()).await);
     dbg!(
@@ -46,7 +41,10 @@ async fn main() -> Result<(), anyhow::Error> {
             .send_command(ReadAPSDesignatedCoordinator::new())
             .await
     );
-    // dbg!(deconz.send_command(ReadMacAddress::new()).await);
+    dbg!(deconz.send_command(ReadMacAddress::new()).await);
+    dbg!(deconz.send_command(ReadNetworkPanId::new()).await);
+    dbg!(deconz.send_command(ReadCurrentChannel::new()).await);
+    dbg!(deconz.send_command(ReadNetworkFrameCounter::new()).await);
 
     watchdog.await??;
 
