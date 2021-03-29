@@ -1,4 +1,4 @@
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, Bytes, BytesMut};
 
 use crate::deconz::DeconzFrame;
 
@@ -7,7 +7,7 @@ use super::super::{
     device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
 };
 
-use super::{DestinationAddress, SourceAddress};
+use super::DestinationAddress;
 
 #[derive(Debug)]
 pub struct ReadConfirmData;

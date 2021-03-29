@@ -3,12 +3,11 @@ pub mod deconz;
 use std::{path::PathBuf, time::Duration};
 
 use deconz::{
-    protocol::{aps::*, device::*, network_parameters::*},
+    protocol::{device::*, network_parameters::*},
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
 use tokio::{task, time::sleep};
-// use tokio_serial::SerialPortSettings;
 use tracing::info;
 
 #[derive(Debug, StructOpt)]

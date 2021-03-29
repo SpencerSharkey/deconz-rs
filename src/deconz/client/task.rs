@@ -1,15 +1,14 @@
-use std::{collections::HashMap, fmt::Display, io, time::Duration};
-use std::{fmt::Debug, process::Command};
+use std::fmt::Debug;
+use std::{fmt::Display, io, time::Duration};
 
-use bytes::{Buf, Bytes};
+use bytes::Bytes;
 use thiserror::Error;
-use tokio::{sync::mpsc, time};
+use tokio::sync::mpsc;
 use tokio_serial::{Serial, SerialPortSettings};
 use tracing::info;
 
 use crate::deconz::{
-    frame::OutgoingPacket,
-    protocol::{device::DeviceState, CommandId, DeconzCommandRequest},
+    protocol::{device::DeviceState, DeconzCommandRequest},
     DeconzFrame, DeconzStream,
 };
 

@@ -5,10 +5,7 @@ use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::codec::Framed;
 
-use super::{
-    frame::{DeconzCrc, DeconzFrame, OutgoingPacket, ProtocolError},
-    protocol::DeconzCommandRequest,
-};
+use super::frame::{DeconzCrc, DeconzFrame, OutgoingPacket, ProtocolError};
 
 #[derive(Error, Debug)]
 pub enum DeconzStreamError {
