@@ -2,8 +2,11 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::deconz::DeconzFrame;
 
-use super::super::{
-    device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
+use super::{
+    super::{
+        device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
+    },
+    DestinationAddress, SourceAddress,
 };
 
 #[derive(Debug)]
@@ -69,16 +72,7 @@ impl DeconzCommandResponse for ReadReceivedDataResponse {
         let destination_endpoint = frame.get_u8();
 
         // We are expecting 0x04 here, because of our request flags.
-        let source_address_mode = frame.get_u8();
-        let source_address = match source_address_mode {
-            0x02 => SourceAddress::NetworkAddress(frame.get_u16_le()),
-            0x03 => SourceAddress::IEEEAddress(frame.get_u64_le()),
-            0x04 => SourceAddress::Both {
-                network_address: frame.get_u16_le(),
-                ieee_address: frame.get_u64_le(),
-            },
-            other => panic!("Unexpected source address mode: {:?}", other),
-        };
+        let source_address = SourceAddress::from_frame(&mut frame);
         let source_endpoint = frame.get_u8();
 
         let profile_id = frame.get_u16_le();
@@ -117,21 +111,4 @@ impl DeconzCommandResponse for ReadReceivedDataResponse {
             Some(device_state),
         )
     }
-}
-
-#[derive(Debug)]
-pub enum DestinationAddress {
-    GroupAddress(u16),
-    NetworkAddress(u16),
-    IEEEAddress(u64),
-}
-
-#[derive(Debug)]
-pub enum SourceAddress {
-    NetworkAddress(u16),
-    IEEEAddress(u64),
-    Both {
-        network_address: u16,
-        ieee_address: u64,
-    },
 }

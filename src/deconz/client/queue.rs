@@ -10,6 +10,7 @@ use crate::deconz::{
             ReadConfirmData, ReadConfirmDataResponse, ReadReceivedData, ReadReceivedDataResponse,
         },
         device::{DeviceState, ReadDeviceState, ReadDeviceStateResponse},
+        mac::{MACBeaconIndication, MACPollIndication},
         CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
     },
     DeconzFrame, DeconzStream,
@@ -168,11 +169,26 @@ impl DeconzQueue {
 
     pub(crate) fn handle_deconz_frame(&mut self, deconz_frame: DeconzFrame<Bytes>) {
         // An unsolicited device state changed was received, so we just need to update our state.
-        let device_state = if deconz_frame.command_id() == CommandId::DeviceStateChanged {
-            let mut deconz_frame = deconz_frame;
-            Some(deconz_frame.get_u8().into())
-        } else {
-            match self.take_in_flight_command(deconz_frame.command_id(), deconz_frame.sequence_id())
+
+        let device_state = match deconz_frame.command_id() {
+            CommandId::DeviceStateChanged => {
+                let mut deconz_frame = deconz_frame;
+                Some(deconz_frame.get_u8().into())
+            }
+            CommandId::MacBeaconIndication => {
+                let (mac_beacon_indication, device_state) =
+                    MACBeaconIndication::from_frame(deconz_frame);
+                self.handle_mac_beacon_indication(mac_beacon_indication);
+                device_state
+            }
+            CommandId::MacPollIndication => {
+                let (mac_poll_indication, device_state) =
+                    MACPollIndication::from_frame(deconz_frame);
+                self.handle_mac_poll_indication(mac_poll_indication);
+                device_state
+            }
+            command_id => match self
+                .take_in_flight_command(command_id, deconz_frame.sequence_id())
             {
                 Some(InFlightCommand::External { response_parser }) => {
                     // todo: we are currently invoking from_frame parsing even if the frame status is error.
@@ -185,7 +201,7 @@ impl DeconzQueue {
                     info!("frame has no in-flight command handler registered, dropping!");
                     None
                 }
-            }
+            },
         };
 
         if let Some(device_state) = device_state {
@@ -242,6 +258,14 @@ impl DeconzQueue {
             "got aps data confirm response: {:?}",
             read_confirm_data_response
         );
+    }
+
+    fn handle_mac_beacon_indication(&mut self, mac_beacon_indication: MACBeaconIndication) {
+        info!("got mac_beacon_indication: {:?}", mac_beacon_indication);
+    }
+
+    fn handle_mac_poll_indication(&mut self, mac_poll_indication: MACPollIndication) {
+        info!("got mac_poll_indication: {:?}", mac_poll_indication);
     }
 
     async fn send_device_state_request(&mut self, deconz_stream: &mut DeconzStream<Serial>) {

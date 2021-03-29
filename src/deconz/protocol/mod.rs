@@ -1,5 +1,6 @@
 pub mod aps;
 pub mod device;
+pub mod mac;
 pub mod network_parameters;
 
 use std::convert::TryFrom;
