@@ -1,6 +1,7 @@
 use std::{
     convert::TryInto,
     ops::{Deref, DerefMut},
+    u16,
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -129,8 +130,16 @@ impl DeconzFrame<OutgoingPacket> {
     fn packet_bytes(&self) -> BytesMut {
         let mut buf = self.header_bytes();
         if let Some(bytes) = &self.inner.0 {
-            // todo: protect against overflow?
-            buf.put_u16_le(bytes.len() as _);
+            let bytes_len: u16 = match bytes.len().try_into() {
+                Ok(b) => b,
+                Err(_) => panic!(
+                    "tried to pack bytes for packet {:?} that was too big ({} > {})!",
+                    self,
+                    bytes.len(),
+                    u16::MAX
+                ),
+            };
+            buf.put_u16_le(bytes_len);
             buf.put_slice(&bytes);
         }
 
