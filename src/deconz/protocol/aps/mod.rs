@@ -1,5 +1,7 @@
+mod data_confirm;
 mod data_indication;
 
+pub use data_confirm::{ReadConfirmData, ReadConfirmDataRequest, ReadConfirmDataResponse};
 pub use data_indication::{ReadReceivedData, ReadReceivedDataRequest, ReadReceivedDataResponse};
 
 #[derive(Debug)]

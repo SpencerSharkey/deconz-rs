@@ -2,12 +2,9 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::deconz::DeconzFrame;
 
-// todo: remove super imports, use crate level relatives.
 use super::super::{
     device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
 };
-
-use super::{DestinationAddress, SourceAddress};
 
 #[derive(Debug)]
 pub struct ReadReceivedData;
@@ -120,4 +117,21 @@ impl DeconzCommandResponse for ReadReceivedDataResponse {
             Some(device_state),
         )
     }
+}
+
+#[derive(Debug)]
+pub enum DestinationAddress {
+    GroupAddress(u16),
+    NetworkAddress(u16),
+    IEEEAddress(u64),
+}
+
+#[derive(Debug)]
+pub enum SourceAddress {
+    NetworkAddress(u16),
+    IEEEAddress(u64),
+    Both {
+        network_address: u16,
+        ieee_address: u64,
+    },
 }

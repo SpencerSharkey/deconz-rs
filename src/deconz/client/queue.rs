@@ -6,7 +6,9 @@ use tracing::info;
 
 use crate::deconz::{
     protocol::{
-        aps::{ReadReceivedData, ReadReceivedDataResponse},
+        aps::{
+            ReadConfirmData, ReadConfirmDataResponse, ReadReceivedData, ReadReceivedDataResponse,
+        },
         device::{DeviceState, ReadDeviceState, ReadDeviceStateResponse},
         CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,
     },
@@ -202,7 +204,7 @@ impl DeconzQueue {
                 device_state
             }
             CommandId::ApsDataConfirm => {
-                let (response, device_state) = todo!();
+                let (response, device_state) = ReadConfirmDataResponse::from_frame(deconz_frame);
                 self.handle_aps_data_confirm_response(response);
                 device_state
             }
@@ -232,8 +234,14 @@ impl DeconzQueue {
         // todo!()
     }
 
-    fn handle_aps_data_confirm_response(&mut self, read_received_confirm_response: ()) {
-        todo!()
+    fn handle_aps_data_confirm_response(
+        &mut self,
+        read_confirm_data_response: ReadConfirmDataResponse,
+    ) {
+        info!(
+            "got aps data confirm response: {:?}",
+            read_confirm_data_response
+        );
     }
 
     async fn send_device_state_request(&mut self, deconz_stream: &mut DeconzStream<Serial>) {
@@ -256,8 +264,9 @@ impl DeconzQueue {
             return;
         }
 
-        info!("device-state indicates there is an available aps confirm. sending request. (TODO)");
-        // TODO: Send.
+        info!("device-state indicates there is an available aps confirm. sending request.");
+        let enqueued_command = EnqueuedCommand::new_internal(ReadConfirmData::new());
+        self.send_command(enqueued_command, deconz_stream).await;
     }
 
     async fn send_aps_data_indication_read_request(
