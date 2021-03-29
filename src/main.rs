@@ -34,10 +34,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut hdl = deconz.clone();
     task::spawn(async move {
-        loop {
-            let x = hdl.send_command(ReadDeviceState::new()).await;
-            info!("device state is: {:?}", x);
-            sleep(Duration::from_secs(1)).await;
+        let mut subscriber = hdl.subscribe_aps_data_indication().await.unwrap();
+        while let Ok(data) = subscriber.recv().await {
+            info!("got aps data indication: {:?}", data);
         }
     });
 

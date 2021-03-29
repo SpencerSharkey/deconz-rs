@@ -3,12 +3,12 @@ use std::{fmt::Display, io, time::Duration};
 
 use bytes::Bytes;
 use thiserror::Error;
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio_serial::{Serial, SerialPortSettings};
 use tracing::info;
 
 use crate::deconz::{
-    protocol::{device::DeviceState, DeconzCommandRequest},
+    protocol::{aps::ReadReceivedDataResponse, device::DeviceState, DeconzCommandRequest},
     DeconzFrame, DeconzStream,
 };
 
@@ -22,12 +22,19 @@ pub enum TaskMessage {
         command_request: Box<dyn DeconzCommandRequest>,
         response_parser: Box<dyn FnOnce(DeconzFrame<Bytes>) -> Option<DeviceState> + Send>,
     },
+    SubscribeRequest(SubscribeRequest),
+}
+
+#[derive(Debug)]
+pub enum SubscribeRequest {
+    ApsDataIndication(oneshot::Sender<broadcast::Receiver<ReadReceivedDataResponse>>),
 }
 
 impl Display for TaskMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TaskMessage::CommandRequest { .. } => f.write_str("CommandRequest"),
+            TaskMessage::SubscribeRequest(_) => f.write_str("SubscribeRequest"),
         }
     }
 }
@@ -42,6 +49,11 @@ impl Debug for TaskMessage {
                 .debug_struct("TaskMessage::CommandRequest")
                 .field("command", command_outgoing)
                 .field("response_parser", &"...")
+                .finish(),
+
+            TaskMessage::SubscribeRequest(request) => f
+                .debug_struct("TaskMessage::SubscribeRequest")
+                .field("request", request)
                 .finish(),
         }
     }
@@ -119,6 +131,16 @@ impl DeconzTask {
                 command_request,
                 InFlightCommand::External { response_parser },
             ),
+
+            TaskMessage::SubscribeRequest(SubscribeRequest::ApsDataIndication(sender)) => {
+                sender
+                    .send(
+                        self.queue
+                            .broadcast_channels
+                            .subscribe_aps_data_indication(),
+                    )
+                    .ok();
+            }
         }
 
         Ok(())

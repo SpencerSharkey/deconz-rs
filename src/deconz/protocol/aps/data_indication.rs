@@ -15,7 +15,7 @@ pub struct ReadReceivedData;
 #[derive(Debug)]
 pub struct ReadReceivedDataRequest;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReadReceivedDataResponse {
     pub device_state: DeviceState,
     pub destination_address: DestinationAddress,

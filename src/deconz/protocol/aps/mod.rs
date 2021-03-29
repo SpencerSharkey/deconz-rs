@@ -7,14 +7,14 @@ pub use data_indication::{ReadReceivedData, ReadReceivedDataRequest, ReadReceive
 
 use crate::deconz::DeconzFrame;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DestinationAddress {
     GroupAddress(u16),
     NetworkAddress(u16),
     IEEEAddress(u64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum SourceAddress {
     NetworkAddress(u16),
     IEEEAddress(u64),

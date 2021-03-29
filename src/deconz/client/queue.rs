@@ -1,6 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 
 use bytes::{Buf, Bytes};
+use futures::channel::mpsc::Receiver;
+use tokio::sync::broadcast;
 use tokio_serial::Serial;
 use tracing::info;
 
@@ -52,6 +54,29 @@ impl ApsDataRequestStatus {
     }
 }
 
+pub(crate) struct DeconzBroadcastChannels {
+    aps_data_indication: broadcast::Sender<ReadReceivedDataResponse>,
+}
+
+impl DeconzBroadcastChannels {
+    fn new() -> Self {
+        let (aps_data_indication, _) = broadcast::channel(128);
+        Self {
+            aps_data_indication,
+        }
+    }
+
+    pub(crate) fn subscribe_aps_data_indication(
+        &self,
+    ) -> broadcast::Receiver<ReadReceivedDataResponse> {
+        self.aps_data_indication.subscribe()
+    }
+
+    fn broadcast_aps_data_indication(&self, data: ReadReceivedDataResponse) {
+        self.aps_data_indication.send(data).ok();
+    }
+}
+
 pub(crate) struct DeconzQueue {
     next_sequence_id: u8,
     device_state: Option<DeviceState>,
@@ -59,6 +84,7 @@ pub(crate) struct DeconzQueue {
     enqueued_aps_data_request_commands: VecDeque<EnqueuedCommand>,
     in_flight_commands: HashMap<CommandId, HashMap<u8, InFlightCommand>>,
     aps_data_request_status: ApsDataRequestStatus,
+    pub(crate) broadcast_channels: DeconzBroadcastChannels,
 }
 
 impl DeconzQueue {
@@ -70,6 +96,7 @@ impl DeconzQueue {
             enqueued_commands: Default::default(),
             enqueued_aps_data_request_commands: Default::default(),
             in_flight_commands: Default::default(),
+            broadcast_channels: DeconzBroadcastChannels::new(),
         }
     }
 
@@ -187,8 +214,7 @@ impl DeconzQueue {
                 self.handle_mac_poll_indication(mac_poll_indication);
                 device_state
             }
-            command_id => match self
-                .take_in_flight_command(command_id, deconz_frame.sequence_id())
+            command_id => match self.take_in_flight_command(command_id, deconz_frame.sequence_id())
             {
                 Some(InFlightCommand::External { response_parser }) => {
                     // todo: we are currently invoking from_frame parsing even if the frame status is error.
@@ -247,6 +273,8 @@ impl DeconzQueue {
             "got aps data indication response: {:?}",
             read_received_data_response
         );
+        self.broadcast_channels
+            .broadcast_aps_data_indication(read_received_data_response);
         // todo!()
     }
 

@@ -1,8 +1,10 @@
 use thiserror::Error;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc, oneshot};
 
-use super::task::TaskMessage;
-use crate::deconz::protocol::{DeconzCommand, DeconzCommandResponse};
+use super::task::{SubscribeRequest, TaskMessage};
+use crate::deconz::protocol::{
+    aps::ReadReceivedDataResponse, DeconzCommand, DeconzCommandResponse,
+};
 
 #[derive(Error, Debug)]
 pub enum HandleError {
@@ -37,6 +39,19 @@ impl DeconzClientHandle {
             response_parser: Box::new(response_parser),
         };
 
+        self.task_tx
+            .send(task_message)
+            .map_err(|_| HandleError::TaskFailure)?;
+
+        rx.await.map_err(|_| HandleError::TaskFailure)
+    }
+
+    pub async fn subscribe_aps_data_indication(
+        &mut self,
+    ) -> Result<broadcast::Receiver<ReadReceivedDataResponse>, HandleError> {
+        let (tx, rx) = oneshot::channel();
+
+        let task_message = TaskMessage::SubscribeRequest(SubscribeRequest::ApsDataIndication(tx));
         self.task_tx
             .send(task_message)
             .map_err(|_| HandleError::TaskFailure)?;
