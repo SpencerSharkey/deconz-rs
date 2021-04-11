@@ -1,9 +1,13 @@
 mod data_confirm;
 mod data_indication;
+mod data_request;
 
 use bytes::{Buf, Bytes};
 pub use data_confirm::{ReadConfirmData, ReadConfirmDataRequest, ReadConfirmDataResponse};
 pub use data_indication::{ReadReceivedData, ReadReceivedDataRequest, ReadReceivedDataResponse};
+pub use data_request::{
+    APSFramePayload, OverflowError, SendData, SendDataOptions, SendDataRequest, SendDataResponse,
+};
 
 use crate::deconz::DeconzFrame;
 
