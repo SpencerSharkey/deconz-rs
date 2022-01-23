@@ -2,7 +2,7 @@ use std::num::NonZeroU8;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use crate::deconz::DeconzFrame;
+use crate::DeconzFrame;
 
 // todo: remove super imports, use crate level relatives.
 use super::{

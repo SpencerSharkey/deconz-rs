@@ -1,6 +1,6 @@
 use bytes::{Buf, Bytes, BytesMut};
 
-use crate::deconz::DeconzFrame;
+use crate::DeconzFrame;
 
 // todo: remove super imports, use crate level relatives.
 use super::super::{

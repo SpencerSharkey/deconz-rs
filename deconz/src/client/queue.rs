@@ -5,7 +5,7 @@ use tokio::sync::broadcast;
 use tokio_serial::Serial;
 use tracing::info;
 
-use crate::deconz::{
+use crate::{
     protocol::{
         aps::{
             ReadConfirmData, ReadConfirmDataResponse, ReadReceivedData, ReadReceivedDataResponse,
@@ -146,7 +146,7 @@ impl DeconzQueue {
         self.num_in_flight_commands() >= MAX_IN_FLIGHT_COMMANDS
     }
 
-    fn num_enqueued_commands(&self) -> usize {
+    pub(crate) fn num_enqueued_commands(&self) -> usize {
         self.enqueued_commands.len() + self.enqueued_aps_data_request_commands.len()
     }
 
@@ -216,7 +216,7 @@ impl DeconzQueue {
             command_id => match self.take_in_flight_command(command_id, deconz_frame.sequence_id())
             {
                 Some(InFlightCommand::External { response_parser }) => {
-                    // todo: we are currently invoking from_frame parsing even if the frame status is error.
+                    // todo: error handling?
                     (response_parser)(deconz_frame)
                 }
                 Some(InFlightCommand::Internal) => {

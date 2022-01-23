@@ -1,19 +1,17 @@
-pub mod deconz;
-
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
 use deconz::{
     protocol::{device::*, network_parameters::*},
     DeconzClient, DeconzClientConfig,
 };
 use structopt::StructOpt;
-use tokio::time::sleep;
 use tracing::info;
 
-use crate::deconz::protocol::aps::ReadReceivedData;
-
 #[derive(Debug, StructOpt)]
-#[structopt(name = "deconz-tap", about = "Taps a deCONZ device over serial/usb")]
+#[structopt(
+    name = "deconz-cli",
+    about = "Commands to interface with a deCONZ (RaspBee/ConBee) Serial Device"
+)]
 struct Opt {
     /// Device path where the the deCONZ compatible device is available at.
     #[structopt(short, long, default_value = "/dev/ttyUSB0")]
@@ -26,6 +24,7 @@ struct Opt {
 enum OptCommand {
     ReadInfo,
     PermitJoin { seconds: u8 },
+    Daemon,
 }
 
 #[tokio::main]
@@ -43,6 +42,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let (watchdog, mut deconz) = DeconzClient::new(deconz_config).start();
 
     match opt.command {
+        OptCommand::Daemon => {
+            watchdog.await??;
+        }
         OptCommand::ReadInfo => {
             let firmware_version_res = deconz.send_command(ReadFirmwareVersion::new()).await?;
             println!(
@@ -129,72 +131,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
-    // let sub = deconz.subscribe_aps_data_indication().await?;
-
-    // loop {
-    //     let data = deconz.send_command(ReadDeviceState::new()).await;
-
-    //     // let data = sub.recv().await?;
-    //     info!("got data! {:?}", data);
-    //     sleep(Duration::from_secs(1)).await;
-    // }
-
-    // let mut hdl = deconz.clone();
-    // task::spawn(async move {
-    //     let mut subscriber = hdl.subscribe_aps_data_indication().await.unwrap();
-    //     while let Ok(data) = subscriber.recv().await {
-    //         info!("got aps data indication: {:?}", data);
-    //     }
-    // });
-
-    // let mut hdl = deconz.clone();
-    // task::spawn(async move {
-    //     loop {
-    //         info!("beep boop...");
-    //         let mut hdl = hdl.clone();
-    //         task::spawn(async move {
-    //             let fut = hdl.send_command(ReadWatchdogTtl::new());
-    //             fut.await;
-    //         });
-    //         // info!("device state is: {:?}", x);
-    //         sleep(Duration::from_secs(1)).await;
-    //     }
-    // });
-    // sleep(Duration::from_secs(3)).await;
-    // dbg!(deconz.send_command(ReadWatchdogTtl::new()).await);
-    // dbg!(deconz.send_command(ReadFirmwareVersion::new()).await);
-    // dbg!(deconz.send_command(ReadNetworkKey::new()).await);
-    // dbg!(deconz.send_command(ReadNetworkAddress::new()).await);
-    // dbg!(
-    //     deconz
-    //         .send_command(ReadAPSDesignatedCoordinator::new())
-    //         .await
-    // );
-    // dbg!(deconz.send_command(ReadMacAddress::new()).await);
-    // dbg!(deconz.send_command(ReadNetworkPanId::new()).await);
-    // dbg!(deconz.send_command(ReadCurrentChannel::new()).await);
-    // dbg!(deconz.send_command(ReadNetworkFrameCounter::new()).await);
-    // dbg!(deconz.send_command(ReadReceivedData::new()).await);
-
-    //loop {
-    // let data = deconz.send_command(ReadReceivedData::new()).await;
-    // dbg!(data);
-    // sleep(Duration::from_secs(10)).await;
-    //}
-
-    // Ok(())
-
     Ok(())
-    // loop {
-    //     info!(
-    //         "got frame: {:?}",
-    //         deconz
-    //             .next_frame()
-    //             .await
-    //             .unwrap()
-    //             .map(|e| { IncomingCommand::decode_frame(e) })
-    //     );
-    // }
 }
 
 fn setup_tracing() {

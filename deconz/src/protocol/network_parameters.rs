@@ -3,7 +3,7 @@ use std::{any::type_name, marker::PhantomData};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use crate::deconz::DeconzFrame;
+use crate::DeconzFrame;
 
 use super::{
     device::DeviceState, CommandId, DeconzCommand, DeconzCommandRequest, DeconzCommandResponse,

@@ -2,7 +2,7 @@ use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use super::task::{SubscribeRequest, TaskMessage};
-use crate::deconz::protocol::{
+use crate::protocol::{
     aps::ReadReceivedDataResponse, DeconzCommand, DeconzCommandResponse,
 };
 

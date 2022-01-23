@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use crate::deconz::DeconzFrame;
+use crate::DeconzFrame;
 
 use super::{
     super::{

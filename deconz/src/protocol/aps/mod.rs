@@ -9,7 +9,7 @@ pub use data_request::{
     APSFramePayload, OverflowError, SendData, SendDataOptions, SendDataRequest, SendDataResponse,
 };
 
-use crate::deconz::DeconzFrame;
+use crate::DeconzFrame;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DestinationAddress {

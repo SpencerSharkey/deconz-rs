@@ -176,7 +176,7 @@ impl DeconzCrc {
             .as_ref()
             .iter()
             .fold(0u16, |acc, el| acc.wrapping_add(*el as _));
-        Self((!sum + 1) as u8 & 0xFF, ((!sum + 1) >> 8) as u8 & 0xFF)
+        Self((!sum + 1) as u8, ((!sum + 1) >> 8) as u8)
     }
 
     /// Creates a new instance of Self from a 2-byte buffer, otherwise None.
@@ -206,7 +206,7 @@ impl DeconzCrc {
 
 #[cfg(test)]
 pub mod test {
-    use crate::deconz::protocol::{device::ReadFirmwareVersionRequest, DeconzCommandRequest};
+    use crate::protocol::{device::ReadFirmwareVersionRequest, DeconzCommandRequest};
 
     use super::*;
 

@@ -6,7 +6,7 @@ use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio_serial::{Serial, SerialPortSettings};
 
-use crate::deconz::{
+use crate::{
     protocol::{aps::ReadReceivedDataResponse, device::DeviceState, DeconzCommandRequest},
     DeconzFrame, DeconzStream,
 };

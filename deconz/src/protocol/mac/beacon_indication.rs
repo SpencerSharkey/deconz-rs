@@ -1,6 +1,6 @@
 use bytes::{Buf, Bytes};
 
-use crate::deconz::{
+use crate::{
     protocol::{aps::SourceAddress, device::DeviceState},
     DeconzFrame,
 };
