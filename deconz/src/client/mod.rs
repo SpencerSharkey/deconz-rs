@@ -7,7 +7,7 @@ use self::{
     task::{DeconzTask, TaskError},
 };
 
-mod handle;
+pub(crate) mod handle;
 mod queue;
 mod task;
 

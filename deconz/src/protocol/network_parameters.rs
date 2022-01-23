@@ -24,12 +24,23 @@ pub trait Parameter: Debug + Sealed + Send + 'static {
     fn write_frame(&self, payload: &mut BytesMut);
 }
 
-mod parameters {
-    use std::{fmt::Display, ops::Deref, time::Duration};
+pub mod parameters {
+    use std::{fmt::Display, ops::Deref, str::FromStr, time::Duration};
 
     use bytes::{Buf, BufMut};
 
     use super::{Bytes, DeconzFrame, Parameter, Sealed};
+
+    #[derive(Debug)]
+    pub struct ParseParameterError<S = &'static str>(S)
+    where
+        S: AsRef<str>;
+
+    impl<S: AsRef<str>> ToString for ParseParameterError<S> {
+        fn to_string(&self) -> String {
+            format!("ParseParameterError: {}", self.0.as_ref())
+        }
+    }
 
     #[derive(Debug)]
     pub struct MacAddress(u64);
@@ -99,6 +110,12 @@ mod parameters {
     impl Display for NetworkPanId {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "0x{:04x}", self.0)
+        }
+    }
+
+    impl From<u16> for NetworkPanId {
+        fn from(v: u16) -> Self {
+            Self(v)
         }
     }
 
@@ -191,6 +208,18 @@ mod parameters {
                 APSDesignatedCoordinator::Router => "Router",
             };
             write!(f, "{}", repr_str)
+        }
+    }
+
+    impl FromStr for APSDesignatedCoordinator {
+        type Err = ParseParameterError<&'static str>;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            Ok(match s.to_lowercase().as_str() {
+                "coordinator" => Self::Coordinator,
+                "router" => Self::Router,
+                _ => return Err(ParseParameterError("expected 'coordinator' or 'router'")),
+            })
         }
     }
 
@@ -325,6 +354,20 @@ mod parameters {
         }
     }
 
+    impl FromStr for SecurityMode {
+        type Err = ParseParameterError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            Ok(match s {
+                "NoSecurity" => Self::NoSecurity,
+                "PreconfiguredNetworkKey" => Self::PreconfiguredNetworkKey,
+                "NetworkKeyFromTrustCenter" => Self::NetworkKeyFromTrustCenter,
+                "NoMasterButTrustCenterLinkKey" => Self::NoMasterButTrustCenterLinkKey,
+                _ => return Err(ParseParameterError("expected valid SecurityMode")),
+            })
+        }
+    }
+
     #[derive(Debug, PartialEq)]
     pub enum PredefinedNetworkPanId {
         /// The [`NetworkPanId`] will be selected or obtained dynamically.
@@ -332,6 +375,7 @@ mod parameters {
         /// The value of the paramater [`NetworkPanId`] will be used to join or form a network.
         Predefined = 0x01,
     }
+
     impl Sealed for PredefinedNetworkPanId {}
     impl Parameter for PredefinedNetworkPanId {
         const PARAMETER_ID: u8 = 0x15;
@@ -340,12 +384,24 @@ mod parameters {
             match frame.get_u8() {
                 x if x == Self::NotPredefined as u8 => Self::NotPredefined,
                 x if x == Self::Predefined as u8 => Self::Predefined,
-                x => panic!("Unexpected security mode: {:?}", x),
+                x => panic!("Unexpected PANID mode: {:?}", x),
             }
         }
 
         fn write_frame(&self, payload: &mut bytes::BytesMut) {
             payload.put_u8((self as *const PredefinedNetworkPanId) as u8);
+        }
+    }
+
+    impl FromStr for PredefinedNetworkPanId {
+        type Err = ParseParameterError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            Ok(match s {
+                "NotPredefined" => Self::NotPredefined,
+                "Predefined" => Self::Predefined,
+                _ => return Err(ParseParameterError("expected valid PredefiendNetworkMode")),
+            })
         }
     }
 
@@ -565,7 +621,7 @@ pub type ReadWatchdogTtl = ReadParameter<parameters::WatchdogTtl>;
 pub type ReadNetworkFrameCounter = ReadParameter<parameters::NetworkFrameCounter>;
 pub type ReadPermitJoin = ReadParameter<parameters::PermitJoin>;
 
-pub type WriteNetworkPanId = WriteParameter<parameters::MacAddress>;
+pub type WriteNetworkPanId = WriteParameter<parameters::NetworkPanId>;
 pub type WriteAPSDesignatedCoordinator = WriteParameter<parameters::APSDesignatedCoordinator>;
 pub type WriteChannelMask = WriteParameter<parameters::ChannelMask>;
 pub type WriteAPSExtendedPanId = WriteParameter<parameters::APSExtendedPanId>;

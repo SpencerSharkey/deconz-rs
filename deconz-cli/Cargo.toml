@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 deconz = { path = "../deconz" }
+hex = "0.4"
 structopt = "0.3"
 tokio = { version = "1", features = [ "full" ] }
 tracing = "0.1"

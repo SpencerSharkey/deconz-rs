@@ -1,9 +1,9 @@
+mod net_params;
+pub mod util;
+
 use std::path::PathBuf;
 
-use deconz::{
-    protocol::{device::*, network_parameters::*},
-    DeconzClient, DeconzClientConfig,
-};
+use deconz::{DeconzClient, DeconzClientConfig};
 use structopt::StructOpt;
 use tracing::info;
 
@@ -22,8 +22,11 @@ struct Opt {
 
 #[derive(Debug, StructOpt)]
 enum OptCommand {
-    ReadInfo,
-    PermitJoin { seconds: u8 },
+    ReadParameters,
+    WriteParameter {
+        #[structopt(subcommand)]
+        param: net_params::WritableParameter,
+    },
     Daemon,
 }
 
@@ -45,89 +48,11 @@ async fn main() -> Result<(), anyhow::Error> {
         OptCommand::Daemon => {
             watchdog.await??;
         }
-        OptCommand::ReadInfo => {
-            let firmware_version_res = deconz.send_command(ReadFirmwareVersion::new()).await?;
-            println!(
-                "Firmware Version: major={}, minor={}, platform={:?}",
-                firmware_version_res.major_version,
-                firmware_version_res.minor_version,
-                firmware_version_res.platform
-            );
-
-            println!(
-                "Watchdog TTL: {:?}",
-                deconz.send_command(ReadWatchdogTtl::new()).await?.value
-            );
-
-            println!(
-                "MAC Address: {}",
-                deconz.send_command(ReadMacAddress::new()).await?.value
-            );
-
-            println!(
-                "NWK Address: {}",
-                deconz.send_command(ReadNetworkAddress::new()).await?.value
-            );
-
-            println!(
-                "NWK PANID: {}",
-                deconz.send_command(ReadNetworkPanId::new()).await?.value
-            );
-
-            println!(
-                "NWK Ext PANID: {}",
-                deconz
-                    .send_command(ReadAPSExtendedPanId::new())
-                    .await?
-                    .value
-            );
-
-            println!(
-                "APS Mode: {}",
-                deconz
-                    .send_command(ReadAPSDesignatedCoordinator::new())
-                    .await?
-                    .value
-            );
-
-            println!(
-                "Trust Center Address: {}",
-                deconz
-                    .send_command(ReadTrustCenterAddress::new())
-                    .await?
-                    .value
-            );
-
-            println!(
-                "Security Mode: {:?}",
-                deconz.send_command(ReadSecurityMode::new()).await?.value
-            );
-
-            println!(
-                "Predefined NWK PANID?: {:?}",
-                deconz
-                    .send_command(ReadPredefinedNetworkPanId::new())
-                    .await?
-                    .value
-            );
-
-            println!(
-                "Network Key: {:?}",
-                deconz.send_command(ReadNetworkKey::new()).await?.value
-            );
-
-            println!(
-                "Current Channel: {:?}",
-                deconz.send_command(ReadCurrentChannel::new()).await?.value
-            );
-
-            println!(
-                "Permit Join: {:?}",
-                deconz.send_command(ReadPermitJoin::new()).await?.value
-            );
+        OptCommand::WriteParameter { param } => {
+            param.write(&mut deconz).await?;
         }
-        OptCommand::PermitJoin { seconds } => {
-            dbg!(deconz.send_command(WritePermitJoin::new(seconds)).await?);
+        OptCommand::ReadParameters => {
+            net_params::read_all_parameters(&mut deconz).await?;
         }
     };
 
