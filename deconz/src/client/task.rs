@@ -1,10 +1,12 @@
-use std::fmt::Debug;
-use std::{fmt::Display, io, time::Duration};
+use std::{
+    fmt::{Debug, Display},
+    time::Duration,
+};
 
 use bytes::Bytes;
 use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
-use tokio_serial::{Serial, SerialPortSettings};
+use tokio_serial::{FlowControl, SerialStream};
 
 use crate::{
     protocol::{aps::ReadReceivedDataResponse, device::DeviceState, DeconzCommandRequest},
@@ -61,7 +63,7 @@ impl Debug for TaskMessage {
 #[derive(Error, Debug)]
 pub enum TaskError {
     #[error(transparent)]
-    IoError(#[from] io::Error),
+    SerialError(#[from] tokio_serial::Error),
 }
 
 /// The main loop task has a few responsibilities:
@@ -102,15 +104,17 @@ impl DeconzTask {
         }
     }
 
-    fn connect_serial(&self) -> Result<Serial, TaskError> {
-        Ok(tokio_serial::Serial::from_path(
-            self.config.device_path.clone(),
-            &SerialPortSettings {
-                baud_rate: 38400,
-                flow_control: tokio_serial::FlowControl::None,
-                timeout: Duration::from_secs(100),
-                ..Default::default()
-            },
+    fn connect_serial(&self) -> Result<SerialStream, TaskError> {
+        Ok(SerialStream::open(
+            &tokio_serial::new(
+                self.config
+                    .device_path
+                    .to_str()
+                    .expect("expected device path str"),
+                38400,
+            )
+            .flow_control(FlowControl::None)
+            .timeout(Duration::from_secs(10)),
         )?)
     }
 
@@ -121,7 +125,6 @@ impl DeconzTask {
 
     async fn handle_task_message(&mut self, task_message: TaskMessage) -> Result<(), TaskError> {
         // info!("incoming task message {:?}", task_message);
-
         match task_message {
             TaskMessage::CommandRequest {
                 command_request,

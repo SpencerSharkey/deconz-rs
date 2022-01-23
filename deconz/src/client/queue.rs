@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use bytes::{Buf, Bytes};
 use tokio::sync::broadcast;
-use tokio_serial::Serial;
+use tokio_serial::SerialStream;
 use tracing::info;
 
 use crate::{
@@ -146,9 +146,9 @@ impl DeconzQueue {
         self.num_in_flight_commands() >= MAX_IN_FLIGHT_COMMANDS
     }
 
-    pub(crate) fn num_enqueued_commands(&self) -> usize {
-        self.enqueued_commands.len() + self.enqueued_aps_data_request_commands.len()
-    }
+    // pub(crate) fn num_enqueued_commands(&self) -> usize {
+    //     self.enqueued_commands.len() + self.enqueued_aps_data_request_commands.len()
+    // }
 
     fn take_in_flight_command(
         &mut self,
@@ -161,7 +161,7 @@ impl DeconzQueue {
         }
     }
 
-    pub(crate) async fn try_io(&mut self, deconz_stream: &mut DeconzStream<Serial>) {
+    pub(crate) async fn try_io(&mut self, deconz_stream: &mut DeconzStream<SerialStream>) {
         // If we have not received any device state yet, then we should request one.
         let device_state = match self.device_state {
             Some(ds) => ds,
@@ -295,7 +295,7 @@ impl DeconzQueue {
         info!("got mac_poll_indication: {:?}", mac_poll_indication);
     }
 
-    async fn send_device_state_request(&mut self, deconz_stream: &mut DeconzStream<Serial>) {
+    async fn send_device_state_request(&mut self, deconz_stream: &mut DeconzStream<SerialStream>) {
         // We're already requesting a device state, no need to duplicate that effort.
         if self.has_in_flight_command_for_command_id(CommandId::DeviceState) {
             return;
@@ -307,7 +307,7 @@ impl DeconzQueue {
 
     async fn send_aps_data_confirm_read_request(
         &mut self,
-        deconz_stream: &mut DeconzStream<Serial>,
+        deconz_stream: &mut DeconzStream<SerialStream>,
     ) {
         // Already has in-flight request, so we won't enqueue anything for the time being, until the data read confirm request
         // sends a result back.
@@ -322,7 +322,7 @@ impl DeconzQueue {
 
     async fn send_aps_data_indication_read_request(
         &mut self,
-        deconz_stream: &mut DeconzStream<Serial>,
+        deconz_stream: &mut DeconzStream<SerialStream>,
     ) {
         // Already has in-flight request, so we won't enqueue anything for the time being, until the data read request
         // sends a result back.
@@ -335,7 +335,7 @@ impl DeconzQueue {
         self.send_command(enqueued_command, deconz_stream).await;
     }
 
-    async fn try_send_aps_data_request(&mut self, deconz_stream: &mut DeconzStream<Serial>) {
+    async fn try_send_aps_data_request(&mut self, deconz_stream: &mut DeconzStream<SerialStream>) {
         // If no slots are available, we won't try to consume from the queue just yet, a future device state update
         // will inform us we have more slots.
         if !self.aps_data_request_status.has_slots_available() || self.in_flight_commands_full() {
@@ -357,7 +357,7 @@ impl DeconzQueue {
     async fn send_command(
         &mut self,
         enqueued_command: EnqueuedCommand,
-        deconz_stream: &mut DeconzStream<Serial>,
+        deconz_stream: &mut DeconzStream<SerialStream>,
     ) {
         let EnqueuedCommand {
             command_request,

@@ -1,6 +1,6 @@
 use bytes::{Bytes, BytesMut};
 use futures::{SinkExt, StreamExt};
-use slip_codec::{SlipCodec, SlipCodecError};
+use slip_codec::{SlipError, tokio::SlipCodec};
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio_util::codec::Framed;
@@ -12,7 +12,7 @@ pub enum DeconzStreamError {
     #[error("read error (payload={0:?})")]
     Read(Bytes),
     #[error("codec error: {0:?}")]
-    SlipCodec(SlipCodecError),
+    SlipCodec(SlipError),
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
 }
@@ -40,7 +40,7 @@ pub struct DeconzStream<S: AsyncRead + AsyncWrite> {
 impl<S: AsyncRead + AsyncWrite + Unpin> DeconzStream<S> {
     /// Creates a new deCONZ stream from anything that implements AsyncRead + AsyncWrite. For example, a tokio::fs::File.
     pub fn new(stream: S) -> Self {
-        let slip_stream = tokio_util::codec::Framed::new(stream, slip_codec::SlipCodec::new());
+        let slip_stream = tokio_util::codec::Framed::new(stream, slip_codec::tokio::SlipCodec::new());
         Self { slip_stream }
     }
 

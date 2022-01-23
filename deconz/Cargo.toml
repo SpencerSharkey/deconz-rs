@@ -8,11 +8,11 @@ edition = "2018"
 bytes = "1.0"
 futures = "0.3"
 futures-sink = "0.3"
-packed_struct = "0.5.0"
+packed_struct = "0.10.0"
 pretty-hex = "0.2"
-slip-codec = { version = "0.2.4", features = ["async"] }
+slip-codec = { version = "0.3", features = ["tokio-codec"] }
 thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
-tokio-serial = { git = "git://github.com/mnbbrown/tokio-serial", rev = "7c2554df2664be2eb29a99957a221650c1325909" } # Waiting for Tokio 1.0 update
+tokio-serial = "5.4.1"
 tokio-util = "0.6"
 tracing = "0.1"
