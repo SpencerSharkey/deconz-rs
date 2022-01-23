@@ -44,15 +44,21 @@ impl DeconzCommandRequest for ReadFirmwareVersionRequest {
     }
 }
 
-pub struct ReadCommandVersion;
+pub struct ReadFirmwareVersion;
 
-impl ReadCommandVersion {
+impl ReadFirmwareVersion {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl DeconzCommand for ReadCommandVersion {
+impl Default for ReadFirmwareVersion {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DeconzCommand for ReadFirmwareVersion {
     type Request = ReadFirmwareVersionRequest;
     type Response = ReadFirmwareVersionResponse;
 
@@ -63,9 +69,9 @@ impl DeconzCommand for ReadCommandVersion {
 
 #[derive(Debug)]
 pub struct ReadFirmwareVersionResponse {
-    major_version: u8,
-    minor_version: u8,
-    platform: FirmwareVersionPlatform,
+    pub major_version: u8,
+    pub minor_version: u8,
+    pub platform: FirmwareVersionPlatform,
 }
 
 impl DeconzCommandResponse for ReadFirmwareVersionResponse {
@@ -87,6 +93,12 @@ pub struct ReadDeviceState;
 impl ReadDeviceState {
     pub fn new() -> Self {
         Self
+    }
+}
+
+impl Default for ReadDeviceState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,7 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
 use bytes::{Buf, Bytes};
-use futures::channel::mpsc::Receiver;
 use tokio::sync::broadcast;
 use tokio_serial::Serial;
 use tracing::info;
@@ -372,7 +371,7 @@ impl DeconzQueue {
             .or_default()
             .insert(sequence_id, in_flight_command);
 
-        let frame = command_request.into_frame(sequence_id);
+        let frame = command_request.as_frame(sequence_id);
         deconz_stream.write_frame(frame).await.unwrap(); // todo: Error handling!
     }
 

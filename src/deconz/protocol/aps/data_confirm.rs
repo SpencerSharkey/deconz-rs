@@ -31,6 +31,12 @@ impl ReadConfirmData {
     }
 }
 
+impl Default for ReadConfirmData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeconzCommand for ReadConfirmData {
     type Request = ReadConfirmDataRequest;
     type Response = ReadConfirmDataResponse;

@@ -151,7 +151,7 @@ impl DeconzFrame<OutgoingPacket> {
     /// The bytes returned here are intended for the device sink.
     pub fn encode(self) -> Bytes {
         let mut packet_bytes = self.packet_bytes();
-        dbg!(packet_bytes.hex_dump());
+        packet_bytes.hex_dump();
         let crc = DeconzCrc::generate(&packet_bytes);
         packet_bytes.put_slice(&crc.as_slice());
         Bytes::from(packet_bytes)
@@ -212,7 +212,7 @@ pub mod test {
 
     #[test]
     pub fn test_frame() {
-        let packet_bytes = ReadFirmwareVersionRequest.into_frame(0).packet_bytes();
+        let packet_bytes = ReadFirmwareVersionRequest.as_frame(0).packet_bytes();
         let crc = DeconzCrc::generate(packet_bytes);
         assert_eq!(crc, DeconzCrc(234, 255))
     }

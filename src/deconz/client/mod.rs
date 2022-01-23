@@ -33,7 +33,7 @@ impl DeconzClient {
     /// Starts a deCONZ task and returns a handle to it.
     pub fn start(self) -> (JoinHandle<Result<(), TaskError>>, DeconzClientHandle) {
         let (task_tx, task_rx) = mpsc::unbounded_channel();
-        let task = DeconzTask::new(self.config.clone(), task_rx);
+        let task = DeconzTask::new(self.config, task_rx);
 
         // deconz task runner
         let task_joinhandle = tokio::spawn(task.run());

@@ -10,24 +10,24 @@ use super::frame::{DeconzCrc, DeconzFrame, OutgoingPacket, ProtocolError};
 #[derive(Error, Debug)]
 pub enum DeconzStreamError {
     #[error("read error (payload={0:?})")]
-    ReadError(Bytes),
+    Read(Bytes),
     #[error("codec error: {0:?}")]
-    SlipCodecError(SlipCodecError),
+    SlipCodec(SlipCodecError),
     #[error(transparent)]
-    ProtocolError(#[from] ProtocolError),
+    Protocol(#[from] ProtocolError),
 }
 
 /// Reads incoming bytes and returns a validated DeconzFrame
 fn read_frame(mut bytes: BytesMut) -> Result<DeconzFrame<Bytes>, DeconzStreamError> {
     let bytes_len = bytes.len();
     if bytes_len < 2 {
-        return Err(DeconzStreamError::ReadError(bytes.into()));
+        return Err(DeconzStreamError::Read(bytes.into()));
     }
 
     // Read the CRC value (last 2 bytes from of a frame) and use it to receive a verified DeconzFrame.
     let crc_bytes = bytes.split_off(bytes_len - 2);
-    let crc = DeconzCrc::from_values(&crc_bytes)
-        .map_err(|e| DeconzStreamError::ProtocolError(e.into()))?;
+    let crc =
+        DeconzCrc::from_values(&crc_bytes).map_err(|e| DeconzStreamError::Protocol(e.into()))?;
     Ok(crc.verify_frame(bytes)?)
 }
 
@@ -50,7 +50,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> DeconzStream<S> {
         let a = self.slip_stream.next().await;
         match a {
             Some(Ok(bytes)) => Some(read_frame(bytes)),
-            Some(Err(e)) => Some(Err(DeconzStreamError::SlipCodecError(e))),
+            Some(Err(e)) => Some(Err(DeconzStreamError::SlipCodec(e))),
             None => None,
         }
     }
@@ -63,7 +63,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> DeconzStream<S> {
         self.slip_stream
             .send(payload.encode())
             .await
-            .map_err(|e| DeconzStreamError::SlipCodecError(e))?;
+            .map_err(DeconzStreamError::SlipCodec)?;
 
         Ok(())
     }

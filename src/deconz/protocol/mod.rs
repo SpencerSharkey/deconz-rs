@@ -23,7 +23,7 @@ pub trait DeconzCommandRequest: Debug + Send + 'static {
     fn payload_data(&self) -> Option<BytesMut>;
 
     /// Concatenates the packet payload onto a common header
-    fn into_frame(&self, sequence_number: u8) -> DeconzFrame<OutgoingPacket> {
+    fn as_frame(&self, sequence_number: u8) -> DeconzFrame<OutgoingPacket> {
         DeconzFrame::new(self.command_id(), sequence_number, self.payload_data())
     }
 }

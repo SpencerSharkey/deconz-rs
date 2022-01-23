@@ -35,6 +35,12 @@ impl ReadReceivedData {
     }
 }
 
+impl Default for ReadReceivedData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeconzCommand for ReadReceivedData {
     type Request = ReadReceivedDataRequest;
     type Response = ReadReceivedDataResponse;
