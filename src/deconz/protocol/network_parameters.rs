@@ -66,6 +66,12 @@ mod parameters {
         }
     }
 
+    impl From<u64> for MacAddress {
+        fn from(v: u64) -> Self {
+            Self(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct NetworkPanId(u16);
 
@@ -212,6 +218,12 @@ mod parameters {
         }
     }
 
+    impl From<u32> for ChannelMask {
+        fn from(v: u32) -> Self {
+            Self(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct APSExtendedPanId(u64);
 
@@ -242,6 +254,12 @@ mod parameters {
         }
     }
 
+    impl From<u64> for APSExtendedPanId {
+        fn from(v: u64) -> Self {
+            APSExtendedPanId(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct TrustCenterAddress(u64);
 
@@ -269,6 +287,12 @@ mod parameters {
     impl Display for TrustCenterAddress {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "0x{:016x}", self.0)
+        }
+    }
+
+    impl From<u64> for TrustCenterAddress {
+        fn from(v: u64) -> Self {
+            Self(v)
         }
     }
 
@@ -427,6 +451,12 @@ mod parameters {
         }
     }
 
+    impl From<u8> for NetworkUpdateId {
+        fn from(v: u8) -> Self {
+            Self(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct WatchdogTtl(Duration);
     impl Sealed for WatchdogTtl {}
@@ -460,6 +490,12 @@ mod parameters {
         }
     }
 
+    impl From<Duration> for WatchdogTtl {
+        fn from(v: Duration) -> Self {
+            Self(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct NetworkFrameCounter(u32);
 
@@ -481,6 +517,12 @@ mod parameters {
 
         fn deref(&self) -> &Self::Target {
             &self.0
+        }
+    }
+
+    impl From<u32> for NetworkFrameCounter {
+        fn from(v: u32) -> Self {
+            Self(v)
         }
     }
 

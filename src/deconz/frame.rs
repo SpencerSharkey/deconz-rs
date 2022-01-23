@@ -140,7 +140,7 @@ impl DeconzFrame<OutgoingPacket> {
                 ),
             };
             buf.put_u16_le(bytes_len);
-            buf.put_slice(&bytes);
+            buf.put_slice(bytes);
         }
 
         buf
