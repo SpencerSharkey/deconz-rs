@@ -148,6 +148,13 @@ pub mod parameters {
             write!(f, "0x{:04x}", self.0)
         }
     }
+
+    impl From<u16> for NetworkAddress {
+        fn from(v: u16) -> Self {
+            Self(v)
+        }
+    }
+
     #[derive(Debug)]
     pub struct NetworkExtendedPanId(u64);
 
@@ -174,11 +181,11 @@ pub mod parameters {
 
     impl Display for NetworkExtendedPanId {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "0x{:16x}", self.0)
+            write!(f, "0x{:016x}", self.0)
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum APSDesignatedCoordinator {
         Coordinator = 0x01,
         Router = 0x00,
@@ -197,7 +204,7 @@ pub mod parameters {
         }
 
         fn write_frame(&self, payload: &mut bytes::BytesMut) {
-            payload.put_u8((self as *const APSDesignatedCoordinator) as u8)
+            payload.put_u8(*self as u8)
         }
     }
 
@@ -325,7 +332,7 @@ pub mod parameters {
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum SecurityMode {
         NoSecurity = 0x00,
         PreconfiguredNetworkKey = 0x01,
@@ -350,7 +357,7 @@ pub mod parameters {
         }
 
         fn write_frame(&self, payload: &mut bytes::BytesMut) {
-            payload.put_u8((self as *const SecurityMode) as u8);
+            payload.put_u8(*self as u8);
         }
     }
 
@@ -368,7 +375,7 @@ pub mod parameters {
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum PredefinedNetworkPanId {
         /// The [`NetworkPanId`] will be selected or obtained dynamically.
         NotPredefined = 0x00,
@@ -389,7 +396,7 @@ pub mod parameters {
         }
 
         fn write_frame(&self, payload: &mut bytes::BytesMut) {
-            payload.put_u8((self as *const PredefinedNetworkPanId) as u8);
+            payload.put_u8(*self as u8);
         }
     }
 
@@ -606,6 +613,7 @@ pub mod parameters {
 
 pub type ReadMacAddress = ReadParameter<parameters::MacAddress>;
 pub type ReadNetworkPanId = ReadParameter<parameters::NetworkPanId>;
+pub type ReadNetworkExtendedPanId = ReadParameter<parameters::NetworkExtendedPanId>;
 pub type ReadNetworkAddress = ReadParameter<parameters::NetworkAddress>;
 pub type ReadAPSDesignatedCoordinator = ReadParameter<parameters::APSDesignatedCoordinator>;
 pub type ReadChannelMask = ReadParameter<parameters::ChannelMask>;
@@ -621,6 +629,7 @@ pub type ReadWatchdogTtl = ReadParameter<parameters::WatchdogTtl>;
 pub type ReadNetworkFrameCounter = ReadParameter<parameters::NetworkFrameCounter>;
 pub type ReadPermitJoin = ReadParameter<parameters::PermitJoin>;
 
+pub type WriteNetworkAddress = WriteParameter<parameters::NetworkAddress>;
 pub type WriteNetworkPanId = WriteParameter<parameters::NetworkPanId>;
 pub type WriteAPSDesignatedCoordinator = WriteParameter<parameters::APSDesignatedCoordinator>;
 pub type WriteChannelMask = WriteParameter<parameters::ChannelMask>;

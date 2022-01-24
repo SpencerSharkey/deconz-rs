@@ -1,0 +1,10 @@
+syntax = "proto3";
+package deconz;
+
+service Daemon {
+    rpc ApsStream(stream ApsStreamRequest) returns (stream ApsStreamResponse) {}
+}
+
+message ApsStreamRequest {}
+
+message ApsStreamResponse {}

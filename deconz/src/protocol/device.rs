@@ -163,3 +163,45 @@ impl From<u8> for DeviceState {
         }
     }
 }
+
+pub struct ChangeNetworkState(NetworkState);
+
+impl ChangeNetworkState {
+    pub fn new(network_state: NetworkState) -> Self {
+        Self(network_state)
+    }
+}
+
+#[derive(Debug)]
+pub struct ChangeNetworkStateRequest {
+    pub state: NetworkState,
+}
+
+pub struct ChangeNetworkStateResponse;
+
+impl DeconzCommand for ChangeNetworkState {
+    type Request = ChangeNetworkStateRequest;
+    type Response = ChangeNetworkStateResponse;
+
+    fn into_request(self) -> Self::Request {
+        Self::Request { state: self.0 }
+    }
+}
+
+impl DeconzCommandRequest for ChangeNetworkStateRequest {
+    fn command_id(&self) -> CommandId {
+        CommandId::ChangeNetworkState
+    }
+
+    fn payload_data(&self) -> Option<BytesMut> {
+        let mut payload = BytesMut::new();
+        payload.put_u8(self.state as u8);
+        Some(payload)
+    }
+}
+
+impl DeconzCommandResponse for ChangeNetworkStateResponse {
+    fn from_frame(mut _frame: DeconzFrame<Bytes>) -> (Self, Option<DeviceState>) {
+        (Self {}, None)
+    }
+}

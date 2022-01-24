@@ -195,7 +195,6 @@ impl DeconzQueue {
 
     pub(crate) fn handle_deconz_frame(&mut self, deconz_frame: DeconzFrame<Bytes>) {
         // An unsolicited device state changed was received, so we just need to update our state.
-
         let device_state = match deconz_frame.command_id() {
             CommandId::DeviceStateChanged => {
                 let mut deconz_frame = deconz_frame;

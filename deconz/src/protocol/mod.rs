@@ -125,6 +125,12 @@ pub enum CommandId {
     UpdateBootloader = 0x21,
 }
 
+impl CommandId {
+    pub fn includes_payload_len(&self) -> bool {
+        !matches!(self, Self::DeviceState | Self::ChangeNetworkState)
+    }
+}
+
 impl TryFrom<u8> for CommandId {
     type Error = ProtocolError;
 

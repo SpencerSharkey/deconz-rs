@@ -11,6 +11,9 @@ pub use data_request::{
 
 use crate::DeconzFrame;
 
+pub type IEEEAddress = u64;
+pub type NetworkAddress = u16;
+
 #[derive(Debug, Clone, Copy)]
 pub enum DestinationAddress {
     GroupAddress(u16),
@@ -39,6 +42,20 @@ impl SourceAddress {
                 ieee_address: frame.get_u64_le(),
             },
             other => panic!("Unexpected source address mode: {:?}", other),
+        }
+    }
+
+    pub fn unwrap_ieee_address(self) -> u64 {
+        match self {
+            SourceAddress::IEEEAddress(address) => address,
+            other => panic!("Unexpected source address: {:?}", other),
+        }
+    }
+
+    pub fn unwrap_network_address(self) -> u16 {
+        match self {
+            SourceAddress::NetworkAddress(address) => address,
+            other => panic!("Unexpected source address: {:?}", other),
         }
     }
 }

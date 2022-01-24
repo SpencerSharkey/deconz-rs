@@ -13,6 +13,9 @@ pub(crate) enum WritableParameter {
     NetworkPanId {
         value: HexString<u16>,
     },
+    NetworkAddress {
+        value: HexString<u16>,
+    },
     ApsDesignatedCoordinator {
         value: network_parameters::parameters::APSDesignatedCoordinator,
     },
@@ -43,11 +46,17 @@ pub(crate) enum WritableParameter {
     NetworkFrameCounter {
         value: u32,
     },
+    PermitJoin {
+        value: u8,
+    },
 }
 
 impl WritableParameter {
     pub async fn write(self, deconz: &mut DeconzClientHandle) -> Result<(), anyhow::Error> {
         match self {
+            WritableParameter::NetworkAddress { value } => {
+                deconz.send_command(network_parameters::WriteNetworkAddress::new(*value)).await?;
+            }
             WritableParameter::NetworkPanId { value } => {
                 deconz
                     .send_command(network_parameters::WriteNetworkPanId::new(*value))
@@ -109,6 +118,11 @@ impl WritableParameter {
                     .send_command(network_parameters::WriteNetworkFrameCounter::new(value))
                     .await?;
             }
+            WritableParameter::PermitJoin { value } => {
+                deconz
+                    .send_command(network_parameters::WritePermitJoin::new(value))
+                    .await?;
+            }
         };
 
         Ok(())
@@ -159,7 +173,7 @@ pub async fn read_all_parameters(deconz: &mut DeconzClientHandle) -> Result<(), 
     println!(
         "NWK Ext PANID: {}",
         deconz
-            .send_command(network_parameters::ReadAPSExtendedPanId::new())
+            .send_command(network_parameters::ReadNetworkExtendedPanId::new())
             .await?
             .value
     );
@@ -168,6 +182,14 @@ pub async fn read_all_parameters(deconz: &mut DeconzClientHandle) -> Result<(), 
         "APS Mode: {}",
         deconz
             .send_command(network_parameters::ReadAPSDesignatedCoordinator::new())
+            .await?
+            .value
+    );
+
+    println!(
+        "APS Ext PANID: {}",
+        deconz
+            .send_command(network_parameters::ReadAPSExtendedPanId::new())
             .await?
             .value
     );
@@ -208,6 +230,14 @@ pub async fn read_all_parameters(deconz: &mut DeconzClientHandle) -> Result<(), 
         "Current Channel: {:?}",
         deconz
             .send_command(network_parameters::ReadCurrentChannel::new())
+            .await?
+            .value
+    );
+
+    println!(
+        "Permit Join: {:?}",
+        deconz
+            .send_command(network_parameters::ReadPermitJoin::new())
             .await?
             .value
     );

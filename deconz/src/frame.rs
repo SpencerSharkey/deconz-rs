@@ -5,7 +5,6 @@ use std::{
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use pretty_hex::PrettyHex;
 use thiserror::Error;
 
 use super::protocol::{CommandId, StatusCode};
@@ -115,7 +114,9 @@ impl DeconzFrame<OutgoingPacket> {
         // the payload size field demands the header length + command payload length
         let mut frame_len = 5;
         if let Some(bytes) = &self.inner.0 {
-            frame_len += 2;
+            if self.command_id.includes_payload_len() {
+                frame_len += 2;
+            }
             frame_len += bytes.len();
         }
 
@@ -130,19 +131,11 @@ impl DeconzFrame<OutgoingPacket> {
     fn packet_bytes(&self) -> BytesMut {
         let mut buf = self.header_bytes();
         if let Some(bytes) = &self.inner.0 {
-            let bytes_len: u16 = match bytes.len().try_into() {
-                Ok(b) => b,
-                Err(_) => panic!(
-                    "tried to pack bytes for packet {:?} that was too big ({} > {})!",
-                    self,
-                    bytes.len(),
-                    u16::MAX
-                ),
-            };
-            buf.put_u16_le(bytes_len);
+            if self.command_id.includes_payload_len() {
+                buf.put_u16_le(bytes.len() as u16);
+            }
             buf.put_slice(bytes);
         }
-
         buf
     }
 
@@ -151,7 +144,6 @@ impl DeconzFrame<OutgoingPacket> {
     /// The bytes returned here are intended for the device sink.
     pub fn encode(self) -> Bytes {
         let mut packet_bytes = self.packet_bytes();
-        packet_bytes.hex_dump();
         let crc = DeconzCrc::generate(&packet_bytes);
         packet_bytes.put_slice(&crc.as_slice());
         Bytes::from(packet_bytes)

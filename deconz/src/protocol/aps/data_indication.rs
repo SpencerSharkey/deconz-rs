@@ -29,6 +29,12 @@ pub struct ReadReceivedDataResponse {
     pub received_signal_strength_indication: i8,
 }
 
+impl ReadReceivedDataResponse {
+    pub fn data(&self) -> Bytes {
+        Bytes::copy_from_slice(&self.application_specific_data_unit)
+    }
+}
+
 impl ReadReceivedData {
     pub fn new() -> Self {
         Self

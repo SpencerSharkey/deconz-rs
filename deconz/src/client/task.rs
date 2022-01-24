@@ -7,6 +7,7 @@ use bytes::Bytes;
 use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio_serial::{FlowControl, SerialStream};
+use tracing::info;
 
 use crate::{
     protocol::{aps::ReadReceivedDataResponse, device::DeviceState, DeconzCommandRequest},
@@ -119,7 +120,7 @@ impl DeconzTask {
     }
 
     async fn handle_deconz_frame(&mut self, incoming_frame: DeconzFrame<Bytes>) {
-        // info!("incoming deconz frame {:?}", incoming_frame);
+        info!("incoming deconz frame {:?}", incoming_frame);
         self.queue.handle_deconz_frame(incoming_frame);
     }
 
